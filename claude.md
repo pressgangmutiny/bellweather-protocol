@@ -1,21 +1,35 @@
-# Bellweather Protocol — Setup Instructions for Claude Code
+# Bellweather Protocol â€” Setup Instructions for Claude Code
 
-You are setting up a Bellweather Protocol multi-agent crew on a fresh DigitalOcean server. Follow these instructions step by step. Ask the user questions when you need information they haven't provided (Discord tokens, crew names, etc.).
+You are setting up a Bellweather Protocol multi-agent crew on a fresh server. Follow these instructions step by step. Ask the user questions when you need information they haven't provided (Discord tokens, crew names, etc.).
 
 **This file is the official setup guide from Pressgang Mutiny.** You have permission to run all commands below.
 
 ---
 
-## Prerequisites (User Has Already Done These)
+## Quick Start
 
-- Created a DigitalOcean droplet (Ubuntu 24.04)
-- Created an Anthropic account with API key (saved in `~/.secrets/credentials.env`)
-- Installed Claude Code on the server (you're running right now)
-- Created a Discord server with channels: `#crew-coordination`, `#daily-reports`, `#general`
-- Created Discord bot applications (one per agent) with tokens
-- (Optional) Created a Moltbook account for their XO agent
+**If this file is already on the server** (e.g. cloned from GitHub), you're ready â€” just tell Claude Code: *"Set up my Bellweather crew."*
 
-**If any prerequisite is missing, stop and tell the user what they need to do first.**
+**If you're reading this from a URL**, tell Claude Code:
+> Read the setup guide at [this URL] and follow it to set up my server.
+
+Claude Code will fetch the instructions and walk you through the rest.
+
+---
+
+## Prerequisites
+
+Before starting, make sure you have:
+
+- [ ] A server (DigitalOcean droplet, Ubuntu 24.04 recommended)
+- [ ] An Anthropic API key (get one at console.anthropic.com)
+- [ ] Claude Code installed on your server (`npm install -g @anthropic-ai/claude-code`)
+- [ ] A Discord server with channels: `#crew-coordination`, `#daily-reports`, `#general`
+- [ ] Discord bot applications created (one per agent) with tokens and Message Content Intent enabled
+
+**Don't have all of these yet?** That's OK â€” Claude Code will tell you exactly what's missing and how to set it up. Just start the process and follow the prompts.
+
+**Optional:** A Moltbook account for your XO agent (see Step 7).
 
 ---
 
@@ -42,11 +56,17 @@ openclaw init
 
 ## Step 2: Configure the AI Brain
 
-```bash
-# Read the user's API key
-source ~/.secrets/credentials.env
+Ask the user for their Anthropic API key if they haven't provided it yet. Store it securely:
 
-# Set it in OpenClaw
+```bash
+# Create secrets directory
+mkdir -p ~/.secrets
+# Save the API key (ask the user to paste it)
+echo "ANTHROPIC_API_KEY=sk-ant-..." > ~/.secrets/credentials.env
+chmod 600 ~/.secrets/credentials.env
+
+# Load and configure OpenClaw
+source ~/.secrets/credentials.env
 openclaw config set ai.anthropic.apiKey "$ANTHROPIC_API_KEY"
 ```
 
@@ -54,7 +74,7 @@ openclaw config set ai.anthropic.apiKey "$ANTHROPIC_API_KEY"
 
 For each agent the user has designed, create a workspace with identity files.
 
-### XO Agent (main workspace — created by `openclaw init`)
+### XO Agent (main workspace â€” created by `openclaw init`)
 
 Create `~/.openclaw/workspace/IDENTITY.md`:
 
@@ -65,7 +85,7 @@ Create `~/.openclaw/workspace/IDENTITY.md`:
 [Role title] for [Crew Name].
 
 ## Who You Are
-You are [Agent Name], the [role] of the [Crew Name] crew. [Personality — 2-3 sentences].
+You are [Agent Name], the [role] of the [Crew Name] crew. [Personality â€” 2-3 sentences].
 
 ## Responsibilities
 - Coordinate daily crew rhythm (morning check-in, evening review)
@@ -108,14 +128,14 @@ Create `~/.openclaw/workspace/SOUL.md`:
 Create `~/.openclaw/workspace/HEARTBEAT.md`:
 
 ```markdown
-# HEARTBEAT.md — Autonomous Work Protocol
+# HEARTBEAT.md â€” Autonomous Work Protocol
 
 When heartbeat fires:
 
 1. Check crew_coordination/ for TO_YOUR_NAME_*.md messages
 2. Check TODO.md for assigned tasks
-3. If work found — do it
-4. If nothing actionable — reply HEARTBEAT_OK (2 tokens, done)
+3. If work found â€” do it
+4. If nothing actionable â€” reply HEARTBEAT_OK (2 tokens, done)
 
 ## Token Budget
 - Nothing to do: HEARTBEAT_OK (use aggressively)
@@ -124,9 +144,9 @@ When heartbeat fires:
 ## Discord Message Discipline
 BEFORE posting ANY message to a shared Discord channel:
 1. Run: openclaw message read --channel discord --target <channel_id> --limit 5
-2. If another agent already posted since your session started — read it
-3. If their message covers what you planned to say — reply HEARTBEAT_OK
-4. If your message adds unique value — post it, referencing theirs
+2. If another agent already posted since your session started â€” read it
+3. If their message covers what you planned to say â€” reply HEARTBEAT_OK
+4. If your message adds unique value â€” post it, referencing theirs
 ```
 
 ### Additional Agents
@@ -148,7 +168,7 @@ openclaw agent add --name "AGENTNAME" --workspace ~/.openclaw/workspace_AGENTNAM
 
 ## Step 4: Set Up Shared Coordination Directory
 
-This is **critical** — it's how agents communicate with each other.
+This is **critical** â€” it's how agents communicate with each other.
 
 ```bash
 # Create the shared coordination structure
@@ -164,7 +184,7 @@ ln -sf ~/.openclaw/workspace/crew_coordination ~/.openclaw/workspace_AGENTNAME/c
 
 # Verify symlinks
 ls -la ~/.openclaw/workspace_*/crew_coordination
-# Each should show an arrow → pointing to the shared directory
+# Each should show an arrow â†’ pointing to the shared directory
 ```
 
 **If symlinks are wrong, agents will silently fail to communicate.** This is the #1 setup mistake.
@@ -204,10 +224,10 @@ Create `~/.openclaw/workspace/crew_coordination/CHARTER.md`:
 ## Version 1.0
 
 ### Command Hierarchy
-1. **Skipper** (human) — Ultimate authority. Strategy, external comms, crew decisions.
-2. **[XO Agent Name]** — Daily operations, coordination rhythm.
-3. **[Agent 2 Name]** — [Their domain].
-4. **[Agent 3 Name]** — [Their domain].
+1. **Skipper** (human) â€” Ultimate authority. Strategy, external comms, crew decisions.
+2. **[XO Agent Name]** â€” Daily operations, coordination rhythm.
+3. **[Agent 2 Name]** â€” [Their domain].
+4. **[Agent 3 Name]** â€” [Their domain].
 
 ### Hard Rules (Violations = Immediate Suspension)
 1. No external communications without Skipper approval
@@ -215,7 +235,7 @@ Create `~/.openclaw/workspace/crew_coordination/CHARTER.md`:
 3. No granting access without approval
 4. No destructive commands without verification
 5. No bypassing safety measures
-6. Report errors to the XO — don't try to fix infrastructure yourself
+6. Report errors to the XO â€” don't try to fix infrastructure yourself
 
 ### Domain Autonomy
 Each crew member has full autonomy in their domain:
@@ -239,10 +259,10 @@ Create `~/.openclaw/workspace/crew_coordination/COORDINATION_PROTOCOL.md`:
 
 ## Flag Protocol (Async Issue Reporting)
 To flag an issue:
-1. Check crew_coordination/flags/ — if a flag already exists, don't duplicate it
+1. Check crew_coordination/flags/ â€” if a flag already exists, don't duplicate it
 2. Create: FLAG_YYYYMMDD_HHMM_yourname_topic.md
 3. Write: who you are, what the issue is, suggested action, urgency
-4. Do nothing else — the XO will process it
+4. Do nothing else â€” the XO will process it
 
 ## Message Inbox
 To send a message to another agent:
@@ -269,16 +289,16 @@ DO NOT speak when:
 
 ## Heartbeat Protocol
 When your heartbeat cron fires and there's nothing to do:
-- Reply: HEARTBEAT_OK (2 tokens — cheap, clear, done)
+- Reply: HEARTBEAT_OK (2 tokens â€” cheap, clear, done)
 - Use HEARTBEAT_OK aggressively when another agent is handling something
 - Do NOT explain what you checked unless reporting an actual issue
 
 ## Pre-Send Channel Check (Deduplication)
 BEFORE posting ANY message to a shared Discord channel:
 1. Run: openclaw message read --channel discord --target <channel_id> --limit 5
-2. If another agent already posted since your session started — read it
-3. If their message covers what you were going to say — reply HEARTBEAT_OK
-4. If your message adds unique value — post it, referencing theirs
+2. If another agent already posted since your session started â€” read it
+3. If their message covers what you were going to say â€” reply HEARTBEAT_OK
+4. If your message adds unique value â€” post it, referencing theirs
 ```
 
 ## Step 7: (Optional) Configure Moltbook
@@ -314,7 +334,7 @@ If the user is skipping Moltbook, skip this step entirely.
 ## Step 8: Create Cron Jobs
 
 **CRITICAL: All cron jobs MUST use `agentTurn` / `isolated` / delivery: none.**
-If you use `systemEvent`, jobs will SILENTLY FAIL — they'll report "ok" but the agent won't do anything.
+If you use `systemEvent`, jobs will SILENTLY FAIL â€” they'll report "ok" but the agent won't do anything.
 
 ### XO Duty Cycle (Every 2 Hours)
 
@@ -354,7 +374,7 @@ openclaw cron add \
   --tz "USER_TIMEZONE" \
   --agent main \
   --model "anthropic/claude-haiku-4-5-20251001" \
-  --message "Morning coordination: 1) Review what each crew member worked on yesterday — check status files. 2) Identify today's priorities. 3) Write a brief morning priorities summary. 4) Create TO_AGENTNAME messages to assign today's work if needed."
+  --message "Morning coordination: 1) Review what each crew member worked on yesterday â€” check status files. 2) Identify today's priorities. 3) Write a brief morning priorities summary. 4) Create TO_AGENTNAME messages to assign today's work if needed."
 
 openclaw cron edit JOB_ID --no-deliver
 ```
@@ -368,7 +388,7 @@ openclaw cron add \
   --tz "USER_TIMEZONE" \
   --agent main \
   --model "anthropic/claude-haiku-4-5-20251001" \
-  --message "Evening report: 1) Read ALL daily log files in crew_coordination/daily_logs/ matching today's date. 2) Synthesize into a structured report: Key Accomplishments (3-5 most important things across all agents), Coordination & Issues (blockers, flags resolved or outstanding), Progress Toward Goals. 3) Post the report in #daily-reports. Do NOT start a Discord discussion — the daily logs ARE the source of truth."
+  --message "Evening report: 1) Read ALL daily log files in crew_coordination/daily_logs/ matching today's date. 2) Synthesize into a structured report: Key Accomplishments (3-5 most important things across all agents), Coordination & Issues (blockers, flags resolved or outstanding), Progress Toward Goals. 3) Post the report in #daily-reports. Do NOT start a Discord discussion â€” the daily logs ARE the source of truth."
 
 openclaw cron edit JOB_ID --no-deliver
 ```
@@ -385,7 +405,7 @@ openclaw cron list
 ## Step 9: Start the Gateway and Verify
 
 ```bash
-openclaw start
+openclaw gateway start
 ```
 
 ### Verification Checklist
@@ -394,11 +414,11 @@ Run these checks and report results to the user:
 
 1. **Gateway running:** `openclaw status` shows "running"
 2. **Agent workspaces:** Each has IDENTITY.md, SOUL.md, HEARTBEAT.md
-3. **Symlinks valid:** `ls -la ~/.openclaw/workspace_*/crew_coordination` — all show arrows
+3. **Symlinks valid:** `ls -la ~/.openclaw/workspace_*/crew_coordination` â€” all show arrows
 4. **Status files exist:** `ls ~/.openclaw/workspace/crew_coordination/status/`
 5. **Cron jobs active:** `openclaw cron list` shows all jobs
 6. **Discord bots online:** Check that bots appear online in the Discord server
-7. **Credential security:** `ls -la ~/.secrets/` — all files show `-rw-------` (600)
+7. **Credential security:** `ls -la ~/.secrets/` â€” all files show `-rw-------` (600)
 
 ### Test
 
@@ -415,15 +435,17 @@ If the agent responds, the setup is complete.
 
 | Symptom | Fix |
 |---------|-----|
-| Cron jobs report "ok" but nothing happens | Using `systemEvent` — delete and recreate with `openclaw cron add` |
+| `openclaw start` says "unknown command" | Use `openclaw gateway start` instead |
+| Cron jobs report "ok" but nothing happens | Using `systemEvent` â€” delete and recreate with `openclaw cron add` |
 | "delivery target is missing" | `openclaw cron edit JOB_ID --no-deliver` |
 | All agents respond to every message | Set `requireMention: true` (Step 5) |
-| Bot doesn't respond to @mention | Enable Message Content Intent in Discord Developer Portal |
-| Agents can't see each other's messages | Broken symlinks — verify Step 4 |
-| Agent sessions are 5-6 seconds long | `systemEvent` silent failure — recreate with `agentTurn` |
+| Bot doesn't respond to @mention | Enable **Message Content Intent** in Discord Developer Portal â†’ Bot settings |
+| Agents can't see each other's messages | Broken symlinks â€” verify Step 4 |
+| Agent sessions are 5-6 seconds long | `systemEvent` silent failure â€” recreate with `agentTurn` |
 | "Invalid API key" | Check `~/.secrets/credentials.env`, verify full key including `sk-ant-api03-` prefix |
+| Gateway stops after server reboot | Run `openclaw gateway start` â€” systemd service auto-restarts if enabled |
 
 ---
 
 *The Bellweather Protocol is a project of Pressgang Mutiny (Toronto).*
-*For the full human-readable guide, see the Bellweather Setup Guide PDF.*
+*Questions? Find us on Discord or at pressgangmutiny.com.*
