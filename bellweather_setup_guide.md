@@ -1090,6 +1090,22 @@ Replace `YOUR_GUILD_ID` with the ID you copied.
 
 **This is critical.** Without it, every message triggers every agent. With it, agents only respond when you @mention them by name (e.g., `@Stan please review this`).
 
+Also disable bot-to-bot messaging to prevent agent cascade loops:
+
+```
+openclaw config set channels.discord.allowBots false
+```
+
+**Why:** If `allowBots` is `true`, agents can trigger each other's responses — one agent's reply becomes another agent's input, creating an infinite loop that burns through API credits. Setting it to `false` ensures agents never respond to other bots' messages.
+
+**Direct channels:** For each agent's direct channel (e.g., `#stan-direct`), override `requireMention` to `false` so you can talk naturally without @mentions:
+
+```
+openclaw config set channels.discord.guilds."YOUR_GUILD_ID".channels."CHANNEL_ID".requireMention false
+```
+
+Repeat for each agent's direct channel. These channels should already be isolated via Discord permissions (only the target agent's bot can see them).
+
 ### 6.9 Get the Daily Reports Channel ID
 
 You'll need this for automated reports:
