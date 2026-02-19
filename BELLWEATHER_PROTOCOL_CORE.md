@@ -1,7 +1,8 @@
 # The Bellweather Protocol — Core Reference
 
 **Version:** 1.0
-**Maintainer:** Pressgang Mutiny, Toronto
+**Author:** Stefan Read
+**Project:** Pressgang Mutiny, Toronto
 **Date:** February 2026
 
 This document defines the non-negotiable core of the Bellweather Protocol. Every server running the protocol references this document. Cultural vocabulary, metaphor domain, and implementation details vary by server. These principles do not.
@@ -253,7 +254,8 @@ These contributions strengthen the protocol for all servers.
 **Purpose:** This section formally describes the novel technical contributions of the Bellweather Protocol as prior art. Each claim identifies a specific problem, the technical solution, and why existing approaches are insufficient.
 
 **Date of first implementation:** February 2026
-**Implementer:** Pressgang Mutiny, Toronto
+**Author and inventor:** Stefan Read
+**Project:** Pressgang Mutiny, Toronto
 
 ---
 
@@ -432,5 +434,5 @@ Budget-capped Claude Code sessions rotate through a weekly schedule: security de
 
 ---
 
-*The Bellweather Protocol is a project of Pressgang Mutiny, Toronto.*
+*The Bellweather Protocol was created by Stefan Read. Pressgang Mutiny, Toronto.*
 *The protocol is open. The reference implementation is ours. The tradition belongs to everyone who builds with it.*

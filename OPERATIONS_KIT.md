@@ -1182,5 +1182,5 @@ For someone with an existing OpenClaw server and Claude Code:
 
 ---
 
-*The Bellweather Protocol is a project of Pressgang Mutiny (Toronto).*
+*The Bellweather Protocol was created by Stefan Read. Pressgang Mutiny, Toronto.*
 *Built with Claude Code on OpenClaw.*

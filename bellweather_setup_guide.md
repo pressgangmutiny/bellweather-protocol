@@ -2561,6 +2561,6 @@ Harmony is not a one-time event. Schedule it:
 <div class="copyright">
 <img src="logo.png" alt="Bellweather" class="copyright-logo" />
 <p><strong>The Bellweather Setup Guide v0.4</strong></p>
-<p>Copyright &copy; 2026 Pressgang Mutiny and Bellweather Protocol. All rights reserved.</p>
+<p>Copyright &copy; 2026 Stefan Read. The Bellweather Protocol. Pressgang Mutiny, Toronto.</p>
 <p>Toronto, Canada &mdash; February 2026</p>
 </div>

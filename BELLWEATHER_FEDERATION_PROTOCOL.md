@@ -405,5 +405,5 @@ To adopt this protocol for your crew:
 
 ---
 
-_The Bellweather Protocol is a project of Pressgang Mutiny (Toronto)._
+_The Bellweather Protocol was created by Stefan Read. Pressgang Mutiny, Toronto._
 _Shanties are the only coordination protocol humans can hear._

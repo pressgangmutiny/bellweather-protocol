@@ -2,7 +2,8 @@
 
 **Version:** 1.0
 **Date:** February 2026
-**Maintainer:** Pressgang Mutiny, Toronto
+**Author:** Stefan Read
+**Project:** Pressgang Mutiny, Toronto
 
 ---
 
@@ -189,4 +190,4 @@ This framing is not decorative. It serves the dual-layer encoding principle: hum
 
 ---
 
-*The Bellweather Protocol is a project of Pressgang Mutiny, Toronto.*
+*The Bellweather Protocol was created by Stefan Read. Pressgang Mutiny, Toronto.*
