@@ -28,7 +28,7 @@ By the end of this guide, you will have:
 - **A team of AI agents** (2-4 agents) running on your own server, 24/7
 - **A coordination system** (the Bellweather Protocol) that keeps your agents organized and working together
 - **A Discord server** where you and your agents communicate naturally
-- **(Optional) Social media presence** for your agents on Moltbook (the agent social network)
+- **(Optional) Social media presence** for your agents on Moltbook (the agent social network — see Step 10)
 - **Automated scheduling** so your agents check in, coordinate, and report to you daily
 
 **This is a real production system.** Pressgang Mutiny runs 4 AI agents coordinating across Discord, WhatsApp, Moltbook, Google Workspace, and multiple API integrations using this exact setup. The agents handle community engagement, logistics, creative work, and technical coordination — all governed by the Bellweather Protocol.
@@ -90,7 +90,6 @@ Good for: Testing the concept, running 1-2 agents with light usage.
 | DigitalOcean Server | $34 / $24 | Your server (4 GB RAM droplet) |
 | Anthropic API Tokens | $14 / $10 | AI "brain" for your agents |
 | Discord | Free | Communication channel |
-| Moltbook (optional) | Free | Agent social network |
 | **Total** | **~$48 / ~$34** | |
 
 ### Tier 2: Recommended (~$172 CAD / ~$123 USD per month)
@@ -103,7 +102,6 @@ Good for: A proper crew of 3-4 agents with moderate daily activity.
 | Claude Code Subscription | $28 / $20 | Pro tier — easier setup & debugging |
 | Anthropic API Tokens | $56 / $40 | More AI usage for busy agents |
 | Discord | Free | Communication channel |
-| Moltbook (optional) | Free | Agent social network |
 | **Total** | **~$172 / ~$123** | |
 
 ### Tier 3: Full Production (~$431 CAD / ~$308 USD per month)
@@ -116,7 +114,6 @@ Good for: Heavy daily usage, 4+ agents, maximum capability.
 | Claude Code Subscription | $280 / $200 | Max tier — highest usage limits |
 | Anthropic API Tokens | $56 / $40 | Heavy API usage |
 | Discord | Free | Communication channel |
-| Moltbook (optional) | Free | Agent social network |
 | **Total** | **~$424 / ~$303** | |
 
 **Note:** All CAD prices use an approximate 1.40 CAD/USD exchange rate. Check current rates for exact pricing.
@@ -198,21 +195,6 @@ You need to create these accounts before Claude can help. Do them in parallel wh
    - Enable all three **Privileged Gateway Intents**
    - Go to **OAuth2** → **URL Generator** → check `bot` → check Send/Read Messages, Read History, Embed Links, Attach Files
    - Copy the URL, paste in browser, invite to your server
-
-### Moltbook (optional — agent social network)
-
-Moltbook is a social network for AI agents. It gives your crew a public presence where they can interact with other agents and humans. **This is entirely optional** — your crew will work fine without it.
-
-If you want to use Moltbook:
-
-1. Go to **https://www.moltbook.com/**
-2. Create **one** account — this will be your crew's first agent (your XO/coordinator)
-3. Go to Settings → API/Developer → Generate an API key
-4. Save the key
-
-**Don't create accounts for every agent yet.** Registering bot accounts before the agents exist on your server can cause problems — the login flow expects an agent that's already configured. In Step A.3, Claude will set up your XO agent first, then use it to register the rest of the crew automatically.
-
-If you're skipping Moltbook, just leave the Moltbook line in the handoff prompt as "not using Moltbook" and skip Step 10.
 
 ---
 
@@ -330,7 +312,7 @@ Here's what I've already done:
 - Created Discord bot applications with these tokens: [PASTE YOUR BOT TOKENS]
 - My Discord Guild ID is: [PASTE YOUR GUILD ID]
 - My #daily-reports Channel ID is: [PASTE CHANNEL ID]
-- Moltbook: [PASTE API KEY if you have one, "not yet — please set this up for me", or "not using Moltbook"]
+- Moltbook: [PASTE API KEY if you have one, or "not using Moltbook" — see optional Step 10]
 
 My crew design:
 - Crew name: [YOUR CREW NAME]
@@ -349,7 +331,6 @@ Ask me questions if you need any information I haven't provided.
 - Create all your agent workspaces and identity files
 - Set up the coordination filesystem with proper symlinks
 - Connect Discord and configure requireMention
-- Set up Moltbook integration (if using Moltbook)
 - Create all the cron jobs with the correct configuration
 - Verify everything works
 
@@ -369,9 +350,7 @@ Once Claude reports that setup is complete, verify:
 
 3. **Coordination:** Run `ls -la ~/.openclaw/workspace_*/crew_coordination` and verify all symlinks point to the shared directory.
 
-4. **Moltbook (if using):** Check that your XO agent's profile exists at moltbook.com.
-
-5. **Wait 24 hours:** Let the crew run for a day. Check that morning and evening reports appear in #daily-reports, status files are updating, and agents are responding to @mentions.
+4. **Wait 24 hours:** Let the crew run for a day. Check that morning and evening reports appear in #daily-reports, status files are updating, and agents are responding to @mentions.
 
 **If something's wrong,** tell Claude Code what's happening and it can diagnose and fix it. The Troubleshooting Reference at the end of this guide covers common issues.
 
