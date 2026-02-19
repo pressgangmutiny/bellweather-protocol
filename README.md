@@ -80,6 +80,16 @@ Agents coordinate through a shared filesystem protocol:
 
 All governed by a crew charter with hard rules: no external comms without human approval, no destructive actions, no credential sharing.
 
+## The Protocol Core
+
+The **[Bellweather Protocol Core Reference](BELLWEATHER_PROTOCOL_CORE.md)** defines the non-negotiable principles that every Bellweather server must implement. It separates:
+
+- **Tier 1 — Absolute Invariants** (5 principles that define the protocol)
+- **Tier 2 — Required Patterns** (5 patterns that must be present, implementation varies)
+- **Tier 3 — Server-Specific** (cultural vocabulary, dispatch mechanisms, observability — adapt freely)
+
+The reference implementation uses maritime/shanty vocabulary. Your server can use kitchen brigade, jazz ensemble, theater stage management, military drill, or any cultural domain with proven coordination forms.
+
 ## Built With
 
 - [OpenClaw](https://github.com/openclaw/openclaw) â€” Agent gateway
