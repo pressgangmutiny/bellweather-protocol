@@ -35,7 +35,7 @@ Claude handles the rest â€” installs dependencies, creates agent workspaces
 
 ## Full Setup Guide
 
-Download the **[Bellweather Setup Guide (PDF)](bellweather_setup_guide_v0.3.pdf)** for the complete walkthrough â€” written for non-technical people, with two paths:
+Read the **[Bellweather Setup Guide](bellweather_setup_guide.md)** for the complete walkthrough — written for non-technical people, with two paths:
 
 | Path | Who It's For | Time |
 |------|-------------|------|
