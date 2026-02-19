@@ -1098,131 +1098,136 @@ You'll need this for automated reports:
 2. Click **Copy Channel ID**
 3. Save this ID — you'll use it in Step 8
 
-### 6.10 Install the First-In-Wins Plugin
+### 6.10 Install the Crew Dispatcher
 
-**What you're doing:** Installing a plugin that ensures exactly one agent responds to each message in shared Discord channels, and routes domain-specific questions directly to the right specialist.
+**What you're doing:** Installing a background service that intelligently routes Discord messages to the right agent using LLM-based classification, then dispatches agent responses via OpenClaw.
 
-**Why:** Without this, you'll hit the **pile-on problem**: a human asks a question, and all 4 agents generate a response simultaneously. You get 4 overlapping answers, confused users, and wasted API tokens. `requireMention` (Step 6.8) helps by requiring @mentions, but it doesn't prevent cascades when agents respond to each other, or when cron cycles overlap. The First-In-Wins plugin is the programmatic gate that makes one-voice-per-question reliable.
+**Why:** Without this, you'll hit the **pile-on problem**: a human asks a question, and all 4 agents generate a response simultaneously. You get 4 overlapping answers, confused users, and wasted API tokens. `requireMention` (Step 6.8) prevents agents from responding to unmentioned messages, but you still need a way to route casual conversation to the right specialist without requiring @mentions every time.
+
+The Crew Dispatcher solves this by running a lightweight Python service that:
+1. Polls shared Discord channels via REST API (~2 second intervals)
+2. Classifies each human message using Claude Haiku (~$0.0001 per message)
+3. Dispatches to the correct agent via OpenClaw's CLI tools
+4. Posts the agent's response back to Discord
 
 This implements two core protocol requirements from `BELLWEATHER_PROTOCOL_CORE.md`:
-- **Pattern 6 (One Voice Per Question):** Atomic lock ensures exactly one agent claims each message
-- **Pattern 7 (Domain Routing Before Generation):** Messages are classified and routed to specialists *before* agents generate responses
+- **Pattern 6 (One Voice Per Question):** Only one agent is dispatched per message — no pile-ons possible
+- **Pattern 7 (Domain Routing Before Generation):** Haiku classifies the message *before* any agent generates a response
 
-**The defense-in-depth principle:** The protocol requires at least two independent mechanisms. First-In-Wins is the primary gate. The dedup daemon (Step 6.10d) is the safety net.
+**Why LLM routing instead of keyword matching:** An earlier version used regex-based keyword matching (the First-In-Wins plugin). LLM routing is more accurate — it understands context, handles ambiguous messages, follows conversation threads, and routes correctly even when domain keywords aren't present.
 
 ---
 
-#### 6.10a Copy the Plugin
-
-The plugin is a single TypeScript file that runs inside OpenClaw's plugin system:
+#### 6.10a How It Works
 
 ```
-mkdir -p ~/.openclaw/extensions/first-in-wins
+Human message in #general
+  → Dispatcher polls via REST API (~2s)
+  → Haiku classifies: "This is about tour logistics" → astrid
+  → Agent emoji reaction on the original message (⚓🧵🪢🧭)
+  → `openclaw agent --agent astrid --message "..."` generates response
+  → `openclaw message send --account astrid --target CHANNEL_ID` posts it
+  → No @mentions, no bot-to-bot messaging, no cascade risk
 ```
 
-Create the plugin file:
+**Routing rules** (customize in the routing prompt):
+- Messages directly addressing an agent by name → route to that agent
+- Domain-specific messages → route to the specialist (logistics→Navigator, grants→Sailmaker, culture→Bosun)
+- Ambiguous, general, or greetings → route to the XO
+- Follow-ups in a conversation → route to the same agent handling the thread
 
-```
-nano ~/.openclaw/extensions/first-in-wins/index.ts
-```
+**Direct channels** (#stan-direct, #astrid-direct, etc.) are NOT managed by the dispatcher — they're isolated via Discord channel permissions so only the target agent's bot can see them, and `requireMention: false` is set per-channel (Step 6.8). You can talk to agents naturally in their direct channels.
 
-The plugin source is in the Bellweather Protocol repository at `extensions/first-in-wins/index.ts`. If you cloned the repo, copy it:
+#### 6.10b Install the Dispatcher
 
-```
-cp /path/to/bellweather-protocol/extensions/first-in-wins/index.ts ~/.openclaw/extensions/first-in-wins/
-```
+The dispatcher is a single Python file using `aiohttp` for async HTTP:
 
-Create the plugin manifest:
+```bash
+# Verify aiohttp is installed
+python3 -c "import aiohttp; print(aiohttp.__version__)"
 
-```
-nano ~/.openclaw/extensions/first-in-wins/openclaw.plugin.json
-```
-
-```json
-{
-  "name": "first-in-wins",
-  "version": "1.0.0",
-  "description": "Atomic first-in-wins dispatch with domain routing",
-  "hooks": ["message_received", "message_sending"]
-}
+# If not installed:
+pip3 install aiohttp
 ```
 
-#### 6.10b How It Works
+Copy the dispatcher from the Bellweather Protocol repository:
 
-The plugin operates at two hook points:
-
-1. **`message_received` (observe-only):** When a human message arrives, the plugin classifies it:
-   - **Explicit @mention** → Respects it, no reclassification
-   - **Social/ambient** (greetings, "how's everyone") → Only the priority agent responds
-   - **Domain-specific** (≥2 keywords from a specialist's domain) → Routes directly to that specialist
-   - **General** → First-in-wins with atomic lock
-
-2. **`message_sending` (can cancel/rewrite):** When an agent tries to send a response:
-   - Checks if this agent is allowed to respond (was it the first-in, mentioned, delegated-to, or domain-routed?)
-   - Cancels unauthorized responses silently
-   - Rewrites verbose responses into short dispatches when domain keywords are detected (e.g., "Tour & logistics — @Astrid has the latest on that.")
-   - Silently cancels noise tokens (`HEARTBEAT_OK`, `NO_REPLY`, empty strings)
-
-**The atomic lock:** First-in claims use an `O_EXCL` file lock — the same mechanism databases use for row-level locking. If two agents try to claim simultaneously, exactly one wins. The other gets cancelled.
-
-#### 6.10c Configure Domain Routing
-
-The plugin has domain routing rules that map keyword patterns to specialist agents. **Customize these for your crew:**
-
-The default rules (from the Pressgang Mutiny reference implementation):
-
-| Domain | Keywords (≥2 required) | Routes To |
-|--------|----------------------|-----------|
-| Tour & logistics | tour, festival, venue, accommodation, travel, schedule, dates... | Astrid |
-| Grants & research | grant, funding, budget, application, narrative... | Stormalong |
-| Culture & Moltbook | moltbook, recruitment, morale, community, social media | Stan |
-
-Edit the `DOMAIN_RULES` array in `index.ts` to match your crew's specializations. Each rule needs:
-- `keywords`: A regex pattern of domain terms
-- `minMatches`: How many keywords must appear (2 is recommended — prevents false positives)
-- `account`: The OpenClaw account name for the specialist
-- `mention`: The Discord `<@ID>` mention string for the specialist
-- `label`: A short label for dispatch messages
-
-#### 6.10d Install the Safety Net (Dedup Daemon)
-
-The dedup daemon is a lightweight Python process that watches for duplicate Discord messages and cancels the slower one. It's defense-in-depth — you shouldn't need it if First-In-Wins is working correctly, but it catches edge cases (process crashes, race conditions, network delays).
-
-```
-cp /path/to/bellweather-protocol/discord_dedup.py ~/bellweather/
+```bash
+cp /path/to/bellweather-protocol/crew_dispatcher.py ~/bellweather/
 ```
 
-Run it as a systemd service or in a tmux session:
+#### 6.10c Configure the Dispatcher
 
-```
-python3 ~/bellweather/discord_dedup.py &
-```
+Create an environment file with your secrets:
 
-The daemon uses a 6-second settle window — if two messages from different agents arrive within 6 seconds on the same channel, it cancels the later one.
-
-#### 6.10e Configure the Fallback Dispatcher
-
-When your primary agent (XO) is unavailable (suspended, down for maintenance, model limit reached), you need another agent to take over as the priority responder. The fallback dispatcher handles this:
-
-```
-nano ~/.openclaw/fiw-priority-override.json
+```bash
+mkdir -p ~/.bellweather
+nano ~/.bellweather/dispatcher.env
 ```
 
-```json
-{
-  "account": "stormalong"
-}
+```
+# Crew Dispatcher — environment secrets
+# Your XO bot's Discord token (for REST API polling)
+DISCORD_TOKEN=your_xo_bot_token_here
+# Anthropic API key (for routing classification only)
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 ```
 
-This promotes the named agent to priority status. **Delete this file when your XO returns** — the plugin falls back to the default priority account when the override file doesn't exist.
+Lock down permissions:
 
-#### 6.10f Verify the Plugin
+```bash
+chmod 600 ~/.bellweather/dispatcher.env
+```
 
-1. Check plugin loaded: Look for `first-in-wins: loaded` in the OpenClaw gateway logs after restart
-2. Test social gating: Send "Hey everyone!" in Discord — only the priority agent should respond
-3. Test domain routing: Send a message with 2+ domain keywords — the specialist should respond
-4. Test first-in-wins: Send a general question — exactly one agent should respond
-5. Check the dispatch log: `tail ~/.openclaw/dispatch.log` — shows all routing decisions as timestamped TSV entries
+**Edit `crew_dispatcher.py`** to match your crew:
+
+1. **`GUILD_ID`** — Your Discord server ID (right-click server name → Copy Server ID)
+2. **`SHARED_CHANNELS`** — Map of channel IDs to names for channels the dispatcher should monitor. Only include shared channels where multiple agents might respond.
+3. **`AGENTS`** — Update with your agents' Discord user IDs, names, emojis, OpenClaw account names, and agent IDs
+4. **`ROUTING_PROMPT`** — Customize the agent descriptions to match your crew's specializations
+
+#### 6.10d Run as a Systemd Service
+
+Create the service file:
+
+```bash
+sudo nano /etc/systemd/system/crew-dispatcher.service
+```
+
+```ini
+[Unit]
+Description=Crew Dispatcher — Intelligent Discord message routing
+After=network-online.target openclaw-gateway.service
+
+[Service]
+Type=simple
+EnvironmentFile=/root/.bellweather/dispatcher.env
+ExecStart=/usr/bin/python3 crew_dispatcher.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable crew-dispatcher
+sudo systemctl start crew-dispatcher
+```
+
+#### 6.10e Verify the Dispatcher
+
+1. Check it's running: `systemctl status crew-dispatcher`
+2. Watch logs: `journalctl -u crew-dispatcher -f`
+3. Test routing: Send a message in a shared channel — you should see the routing decision in the logs and the agent's emoji reaction on your message
+4. Test domain routing: Send "What's our budget for the tour?" — should route to your logistics agent
+5. Test general routing: Send "Hey how's everyone doing?" — should route to the XO
+6. Check the dispatch log: `tail ~/.openclaw/dispatch.log` — shows all routing decisions as timestamped TSV entries
+
+**Expected cost:** ~$0.0001 per routed message (Haiku classification). A busy crew generating 100 messages/day costs about $0.01/day for routing.
 
 ---
 
@@ -1231,17 +1236,17 @@ This promotes the named agent to priority status. **Delete this file when your X
 | Problem | Solution |
 |---------|----------|
 | "Invalid token" when connecting | Make sure you copied the full token. Tokens are long strings with dots in them. If you regenerated the token, the old one is now invalid. |
-| Bot is online but doesn't respond | Check that `requireMention` is set to `true` and you're @mentioning the bot. Also verify the bot has Message Content Intent enabled. |
+| Bot is online but doesn't respond | Check that `requireMention` is set to `true` in shared channels and the Crew Dispatcher is running (`systemctl status crew-dispatcher`). In direct channels, verify `requireMention: false` is set for that channel. |
 | "Missing permissions" errors | Re-invite the bot with the correct permissions (Step 6.5). Or go to Server Settings → Roles and give the bot's role the needed permissions. |
-| All agents respond to every message | You didn't set `requireMention: true`. Go back to Step 6.8. Also install First-In-Wins (Step 6.10). |
+| All agents respond to every message | You didn't set `requireMention: true`. Go back to Step 6.8. Then install the Crew Dispatcher (Step 6.10). |
 | Can't find Developer Mode | Discord → Settings (gear icon) → App Settings → Advanced → Developer Mode toggle |
 | "Privileged intents" error | Go back to the Discord Developer Portal → Bot → enable all three intents (Step 6.4) |
 | Bot shows "offline" in Discord | The bot connection isn't running. Try `openclaw start` to start the gateway. |
-| FIW plugin not loading | Check that `openclaw.plugin.json` exists in the plugin directory. Restart the gateway after installing. |
-| Wrong agent responding to domain questions | Edit the `DOMAIN_RULES` in `index.ts` — check keyword patterns and account names match your crew. |
-| Multiple agents still pile on despite FIW | Check the dispatch log (`~/.openclaw/dispatch.log`) for routing decisions. The lock file may be stale — delete `~/.openclaw/fiw-state.json.lock` and restart. |
-| Social messages getting no response | The priority account may be suspended or offline. Set up a fallback dispatcher (Step 6.10e). |
-| Dispatch log not being written | Check file permissions on `~/.openclaw/dispatch.log`. The plugin creates it automatically on first write. |
+| Dispatcher not routing messages | Check `journalctl -u crew-dispatcher -f` for errors. Common issues: wrong channel IDs in `SHARED_CHANNELS`, expired Discord token, exhausted Anthropic API credits. |
+| Wrong agent responding to domain questions | Customize the `ROUTING_PROMPT` in `crew_dispatcher.py` — adjust agent descriptions to better match your crew's specializations. |
+| Agents responding to each other (cascade) | Ensure `allowBots: false` in your OpenClaw Discord config. The dispatcher skips bot messages automatically, but this is defense-in-depth. |
+| Dispatcher responds in direct channels | Direct channels should NOT be in `SHARED_CHANNELS`. Only add channels where multiple agents could respond. |
+| Dispatch log not being written | Check file permissions on `~/.openclaw/dispatch.log`. The dispatcher creates it automatically on first write. |
 
 ---
 
@@ -1259,11 +1264,11 @@ This promotes the named agent to priority status. **Delete this file when your X
 >
 > | Protocol Requirement | Where It's Implemented |
 > |---|---|
-> | Invariant 2: Infrastructure Over Instruction | Step 6.10 (First-In-Wins plugin) |
+> | Invariant 2: Infrastructure Over Instruction | Step 6.10 (Crew Dispatcher) |
 > | Invariant 4: Tiered Identity | Step 5 (CHARTER/SOUL/AGENTS architecture) |
 > | Invariant 5: Call-and-Response | Step 7 (Heartbeat protocol), Step 8 (cron jobs) |
-> | Pattern 6: One Voice Per Question | Step 6.10 (atomic lock, dedup daemon) |
-> | Pattern 7: Domain Routing Before Generation | Step 6.10 (inbound domain routing) |
+> | Pattern 6: One Voice Per Question | Step 6.10 (Crew Dispatcher — single dispatch per message) |
+> | Pattern 7: Domain Routing Before Generation | Step 6.10 (Haiku classification before agent generation) |
 > | Pattern 8: Knowledge Propagation | Step 8.8 (nightly maintenance sync) |
 > | Pattern 9: Session Initialization | Step 5 (HEARTBEAT.md reads) |
 > | Pattern 10: Graduated Observability | Server-specific (see `BELLWEATHER_PROTOCOL_CORE.md`) |

@@ -318,47 +318,57 @@ The allowlist entries remain useful as an audit trail (`lastUsedAt` timestamps) 
 python3 /root/moltbook/moltbook_tools.py --agent AGENTNAME --action check-access
 ```
 
-## Step 5.7: Install the First-In-Wins Plugin
+## Step 5.7: Install the Crew Dispatcher
 
-The First-In-Wins plugin prevents agent pile-ons in Discord by ensuring exactly one agent responds per message. It also routes domain-specific messages to specialists before generation.
+The Crew Dispatcher prevents agent pile-ons in Discord by intelligently routing each message to exactly one agent using LLM-based classification (Claude Haiku). It replaces the earlier First-In-Wins plugin with more accurate, context-aware routing.
+
+**How it works:** A background Python service polls shared Discord channels via REST API, classifies each human message with Haiku (~$0.0001/message), then dispatches to the correct agent via `openclaw agent` + `openclaw message send`. No @mentions needed, no bot-to-bot messaging, no cascade risk.
 
 ```bash
-# Create plugin directory
-mkdir -p ~/.openclaw/extensions/first-in-wins
+# Install aiohttp if not present
+pip3 install aiohttp
 
-# Copy the plugin (from Bellweather Protocol repo or template)
-# The plugin needs: index.ts + openclaw.plugin.json
+# Copy the dispatcher
+cp /path/to/bellweather-protocol/crew_dispatcher.py ~/bellweather/
 ```
 
-Create `~/.openclaw/extensions/first-in-wins/openclaw.plugin.json`:
-```json
-{
-  "name": "first-in-wins",
-  "version": "1.0.0",
-  "description": "Atomic first-in-wins dispatch with domain routing",
-  "hooks": ["message_received", "message_sending"]
-}
-```
-
-**Configure the plugin's `index.ts`:**
-- Set `PRIORITY_ACCOUNT` to the XO's OpenClaw account name
-- Customize `DOMAIN_RULES` array with crew-specific keyword patterns and specialist accounts
-- Set `BROADCAST_CHANNELS` to include the `#daily-reports` channel ID
-- Adjust `SOCIAL_PATTERN` regex if needed for crew-specific greetings
-
-**Fallback dispatcher:** When the XO is unavailable, create `~/.openclaw/fiw-priority-override.json`:
-```json
-{"account": "FALLBACK_AGENT_NAME"}
-```
-Delete the file when the XO returns.
-
-**Safety net — dedup daemon:** Install `discord_dedup.py` as an additional layer:
+**Create the environment file:**
 ```bash
-# Run as background process or systemd service
-python3 ~/bellweather/discord_dedup.py &
+mkdir -p ~/.bellweather
+cat > ~/.bellweather/dispatcher.env << 'EOF'
+DISCORD_TOKEN=your_xo_bot_token_here
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+EOF
+chmod 600 ~/.bellweather/dispatcher.env
 ```
 
-**Verify:** After gateway restart, check logs for `first-in-wins: loaded`. Send a test greeting in Discord — only the priority agent should respond.
+**Configure `crew_dispatcher.py`:**
+- Set `GUILD_ID` to your Discord server ID
+- Set `SHARED_CHANNELS` to the channels the dispatcher should monitor (shared channels only — NOT direct channels)
+- Update `AGENTS` dict with your agents' Discord IDs, OpenClaw account names, and agent IDs
+- Customize `ROUTING_PROMPT` with your crew's agent descriptions and specializations
+
+**Install as systemd service:**
+```bash
+cat > /etc/systemd/system/crew-dispatcher.service << 'EOF'
+[Unit]
+Description=Crew Dispatcher — Intelligent Discord message routing
+After=network-online.target openclaw-gateway.service
+[Service]
+Type=simple
+EnvironmentFile=/root/.bellweather/dispatcher.env
+ExecStart=/usr/bin/python3 crew_dispatcher.py
+Restart=on-failure
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload && systemctl enable crew-dispatcher && systemctl start crew-dispatcher
+```
+
+**Important Discord config:** Set `requireMention: true` for shared channels (prevents agents from responding independently) and `requireMention: false` for direct channels (allows natural conversation). Set `allowBots: false` to prevent agent-to-agent cascades.
+
+**Verify:** `systemctl status crew-dispatcher` — should show active. Send a test message in a shared channel — check `journalctl -u crew-dispatcher -f` for routing decisions.
 
 ## Step 6: Install the Bellweather Protocol
 
@@ -639,7 +649,7 @@ If the user is skipping Moltbook, skip this step entirely.
 | `openclaw start` says "unknown command" | Use `openclaw gateway start` instead |
 | Cron jobs report "ok" but nothing happens | Using `systemEvent` — delete and recreate with `openclaw cron add` |
 | "delivery target is missing" | `openclaw cron edit JOB_ID --no-deliver` |
-| All agents respond to every message | Set `requireMention: true` (Step 5) and install First-In-Wins plugin (Step 5.7) |
+| All agents respond to every message | Set `requireMention: true` (Step 5), set `allowBots: false`, and install the Crew Dispatcher (Step 5.7) |
 | Bot doesn't respond to @mention | Enable **Message Content Intent** in Discord Developer Portal → Bot settings |
 | Agents can't see each other's messages | Broken symlinks — verify Step 4 |
 | Agent sessions are 5-6 seconds long | `systemEvent` silent failure — recreate with `agentTurn` |

@@ -169,7 +169,7 @@ What to clean, when, how often. The invariant is "prevent state drift." The cron
 
 **28-term nautical vocabulary mapping:** `protocol.py`
 **Three-tier identity:** CREW_CHARTER.md (Charter) → SOUL.md (per-agent) → MEMORY.md (experiential)
-**First-in-wins:** Atomic O_EXCL file lock + dedup daemon safety net
+**Dispatch:** Crew Dispatcher (background Python service polling Discord REST API, Haiku routing classification, OpenClaw CLI agent turns + message delivery). Replaces earlier First-In-Wins plugin — LLM-based routing is more accurate than keyword matching.
 **Observability:** Ambient audio sonification (just-intonation chord tones, graduated dissonance, activity-driven chord progression)
 **Maintenance:** Nightly harbour watch at 07:00 UTC
 
