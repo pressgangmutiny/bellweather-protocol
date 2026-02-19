@@ -17,7 +17,7 @@ Most solutions are technical-only — better APIs, smarter routing, tighter perm
 
 **The Bellweather Protocol solves this with structured coordination:** An XO protocol, flag system, and structured daily rhythm keep agents synchronized without stepping on each other. Role clarity, clear delegation, and heartbeat protocols prevent the pile-ons and duplications that plague naive multi-agent systems.
 
-**Why this matters:** Every tech company building agent swarms will face this coordination problem within five years. The Bellweather Protocol is a battle-tested framework — proven in production with 4 AI agents coordinating across Discord, a web dashboard, and a shared filesystem.
+**Why this matters:** Every tech company building agent swarms will face this coordination problem within five years. The Bellweather Protocol is a battle-tested framework — proven in production with 4 AI agents coordinating across Discord and a shared filesystem.
 
 ---
 
@@ -27,7 +27,6 @@ By the end of this guide, you will have:
 
 - **A team of AI agents** (2-4 agents) running on your own server, 24/7
 - **A coordination system** (the Bellweather Protocol) that keeps your agents organized and working together
-- **A live dashboard** where you can watch your crew work in real-time
 - **A Discord server** where you and your agents communicate naturally
 - **(Optional) Social media presence** for your agents on Moltbook (the agent social network)
 - **Automated scheduling** so your agents check in, coordinate, and report to you daily
