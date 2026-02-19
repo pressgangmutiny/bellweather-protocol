@@ -628,19 +628,6 @@ python3 nightly_maintenance.py --mechanical-only  # safe tasks only
 
 Weekly max: ~$11. Estimated actual: ~$6-8/week.
 
-## Step 11: (Optional) Claude Code Presence Daemon
-
-If running the Bellweather crew dashboard (`crew.html`), Claude Code sessions can have an ambient audio/visual presence — rigging hum when active, ship's bell at milestones.
-
-```bash
-# Install the presence daemon
-cp claude_presence_daemon.py 
-# Enable the systemd service
-systemctl enable --now bellweather-presence.service
-```
-
-The daemon auto-detects running Claude/Claude Code processes and sends heartbeats to the dashboard. Claude Code is represented as "weather, not crew" — an ambient overlay, not a 5th agent.
-
 ---
 
 ## Troubleshooting Quick Reference

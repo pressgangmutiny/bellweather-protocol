@@ -17,7 +17,7 @@ Most solutions are technical-only — better APIs, smarter routing, tighter perm
 
 **The Bellweather Protocol solves this with structured coordination:** An XO protocol, flag system, and structured daily rhythm keep agents synchronized without stepping on each other. Role clarity, clear delegation, and heartbeat protocols prevent the pile-ons and duplications that plague naive multi-agent systems.
 
-**Why this matters:** Every tech company building agent swarms will face this coordination problem within five years. The Bellweather Protocol is a battle-tested framework — proven in production with 4 AI agents coordinating across Discord and a shared filesystem.
+**Why this matters:** Every tech company building agent swarms will face this coordination problem within five years. The Bellweather Protocol is a battle-tested framework — proven in production with 4 AI agents coordinating across Discord, Google Workspace, multiple API integrations, and a shared filesystem.
 
 ---
 
@@ -31,7 +31,7 @@ By the end of this guide, you will have:
 - **(Optional) Social media presence** for your agents on Moltbook (the agent social network)
 - **Automated scheduling** so your agents check in, coordinate, and report to you daily
 
-**This is a real production system.** Pressgang Mutiny runs 4 AI agents coordinating across Discord, WhatsApp, Moltbook, and a web dashboard using this exact setup. The agents handle community engagement, logistics, creative work, and technical coordination — all governed by the Bellweather Protocol.
+**This is a real production system.** Pressgang Mutiny runs 4 AI agents coordinating across Discord, WhatsApp, Moltbook, Google Workspace, and multiple API integrations using this exact setup. The agents handle community engagement, logistics, creative work, and technical coordination — all governed by the Bellweather Protocol.
 
 ### Choose Your Path
 
@@ -2209,7 +2209,6 @@ ufw status
 | Port | Service | Should Be Open? |
 |------|---------|----------------|
 | 22 | SSH | Yes (password access preserved intentionally) |
-| 7070 | Bellweather Dashboard | Yes (if you want public dashboard access) |
 | 3000 | OpenClaw Gateway | No — should be localhost only |
 
 ```
@@ -2218,7 +2217,6 @@ ufw status
 
 # Enable firewall if not already active
 ufw allow 22/tcp
-ufw allow 7070/tcp
 ufw enable
 ```
 
@@ -2260,7 +2258,6 @@ After hardening, verify your crew still works:
 
 1. `@YourXO Status check` in Discord — agent should respond normally
 2. `openclaw cron list` — all jobs should still be active
-3. Dashboard should load at `http://YOUR_IP:7070/crew?token=YOUR_TOKEN`
 
 **Security is not a one-time event.** Schedule a monthly review — add a cron job reminder or put it in your XO's standing orders.
 
@@ -2273,7 +2270,6 @@ After hardening, verify your crew still works:
 | Locked myself out of SSH | Use DigitalOcean's web console (Droplet → Access → Launch Recovery Console) |
 | UFW blocked my SSH | DigitalOcean web console → `ufw allow 22/tcp` |
 | Agent can't read credentials after chmod | Verify the agent process runs as root (or the user that owns the files) |
-| Dashboard stopped working after firewall | `ufw allow 7070/tcp && ufw reload` |
 
 ---
 
@@ -2348,7 +2344,7 @@ Review the directory structure against these principles:
 
 | Directory | Purpose | Principle |
 |-----------|---------|-----------|
-| `` | Protocol engine and dashboard | One concern per module |
+| `` | Protocol engine | One concern per module |
 | `/root/moltbook/` | API client library | Standalone, no internal dependencies |
 | `/root/crew_coordination/` | Active inter-agent communication | Ephemeral — processed files move to `_processed/` |
 | `/root/archive/` | Historical artifacts | Nothing here should be imported by running code |
@@ -2424,7 +2420,6 @@ The Bellweather identity should be present throughout the system — not as nois
 | Location | How |
 |----------|-----|
 | Module docstrings | Opening line: `"""Bellweather Protocol — [module purpose]."""` |
-| Dashboard HTML | Subtle branding in header/footer |
 | Agent SOUL.md files | Reference to the crew identity and Bellweather tradition |
 | `CREW_CHARTER.md` | Preamble connecting the charter to maritime tradition |
 | Error messages | Nautical vocabulary where natural (e.g., "anchor failed" not "save failed") |
@@ -2548,7 +2543,6 @@ Harmony is not a one-time event. Schedule it:
 | **Claude** | The AI model made by Anthropic that powers the agents. Comes in three sizes: Haiku (fast/cheap), Sonnet (balanced), Opus (smartest). |
 | **Claude Code** | A command-line AI assistant by Anthropic. Can run commands, edit files, and manage your server. Used in Path A for automated setup. |
 | **Cron Job** | A task that runs automatically on a schedule (e.g., every 2 hours, daily at 7 AM). |
-| **Dashboard** | A web page showing real-time crew status and activity. |
 | **Discord** | A messaging platform. Your primary channel for communicating with your agents. |
 | **Droplet** | DigitalOcean's name for a virtual server. |
 | **Flag** | A file-based signal that an agent creates to report an issue to the XO. Prevents pile-ons. |
