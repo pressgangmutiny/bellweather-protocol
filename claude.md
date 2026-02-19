@@ -455,37 +455,7 @@ BEFORE posting ANY message to a shared Discord channel:
 4. If your message adds unique value — post it, referencing theirs
 ```
 
-## Step 7: (Optional) Configure Moltbook
-
-If the user wants Moltbook integration:
-
-1. Save the Moltbook API key:
-```bash
-echo "MOLTBOOK_KEY_MAIN=their-key-here" >> ~/.secrets/moltbook_credentials.env
-chmod 600 ~/.secrets/moltbook_credentials.env
-```
-
-2. Create `~/.openclaw/workspace/crew_coordination/CREW_MOLTBOOK_DIRECTORY.md` mapping internal names to Moltbook usernames.
-
-3. Add Moltbook onboarding instructions to each agent's IDENTITY.md:
-```markdown
-## Moltbook Onboarding (First Session)
-If your Moltbook profile has no bio or posts yet, this is your first session on the platform.
-1. Read your SOUL.md and IDENTITY.md to understand your voice and role.
-2. Set up your Moltbook profile: write a bio (2-3 sentences) that reflects your personality.
-3. Write one introduction post in the 'builds' submolt introducing yourself and your crew.
-4. Follow your crew members on Moltbook (check crew_coordination/CREW_MOLTBOOK_DIRECTORY.md for usernames).
-5. After onboarding, update crew_coordination/CREW_MOLTBOOK_DIRECTORY.md with your Moltbook username.
-
-Moltbook safety rules: Wait 5+ minutes between posts. Never post identical content twice. If you get a 403 error, STOP all posting immediately.
-```
-
-**Moltbook API base URL:** `https://www.moltbook.com/api/v1`
-**Auth header:** `Authorization: Bearer YOUR_KEY`
-
-If the user is skipping Moltbook, skip this step entirely.
-
-## Step 8: Create Cron Jobs
+## Step 7: Create Cron Jobs
 
 **CRITICAL: All cron jobs MUST use `agentTurn` / `isolated` / delivery: none.**
 If you use `systemEvent`, jobs will SILENTLY FAIL — they'll report "ok" but the agent won't do anything.
@@ -569,7 +539,7 @@ openclaw cron list
 # Every job should show: agentTurn, isolated, delivery: none
 ```
 
-## Step 9: Start the Gateway and Verify
+## Step 8: Start the Gateway and Verify
 
 ```bash
 openclaw gateway start
@@ -596,17 +566,17 @@ Tell the user to type in Discord:
 
 If the agent responds, the setup is complete.
 
-## Step 10: (Optional) Nightly Maintenance — "The Harbour Watch"
+## Step 9: (Optional) Nightly Maintenance — "The Harbour Watch"
 
 Automated nightly maintenance prevents state drift, disk exhaustion, and silent failures.
 
 ```bash
 # Install nightly maintenance (runs at 2am local time / 07:00 UTC)
-crontab -l 2>/dev/null; echo "0 7 * * * /usr/bin/python3 nightly_maintenance.py >> logs/nightly_maintenance.log 2>&1" | crontab -
+crontab -l 2>/dev/null; echo "0 7 * * * /usr/bin/python3 /root/bellweather/nightly_maintenance.py >> /root/bellweather/logs/nightly_maintenance.log 2>&1" | crontab -
 
 # Test it
-python3 nightly_maintenance.py --dry-run         # plan only
-python3 nightly_maintenance.py --mechanical-only  # safe tasks only
+python3 /root/bellweather/nightly_maintenance.py --dry-run         # plan only
+python3 /root/bellweather/nightly_maintenance.py --mechanical-only  # safe tasks only
 ```
 
 **What it does (Phase 1 — Mechanical, every night, $0):**
@@ -627,6 +597,38 @@ python3 nightly_maintenance.py --mechanical-only  # safe tasks only
 - Sunday: Weekly summary & knowledge consolidation (Sonnet, $1)
 
 Weekly max: ~$11. Estimated actual: ~$6-8/week.
+
+## Step 10: (Optional) Configure Moltbook
+
+Only set up Moltbook after the crew is running and verified (Step 8). Agents handle their own onboarding during duty cycles.
+
+If the user wants Moltbook integration:
+
+1. Save the Moltbook API key:
+```bash
+echo "MOLTBOOK_KEY_MAIN=their-key-here" >> ~/.secrets/moltbook_credentials.env
+chmod 600 ~/.secrets/moltbook_credentials.env
+```
+
+2. Create `~/.openclaw/workspace/crew_coordination/CREW_MOLTBOOK_DIRECTORY.md` mapping internal names to Moltbook usernames.
+
+3. Add Moltbook onboarding instructions to each agent's IDENTITY.md:
+```markdown
+## Moltbook Onboarding (First Session)
+If your Moltbook profile has no bio or posts yet, this is your first session on the platform.
+1. Read your SOUL.md and IDENTITY.md to understand your voice and role.
+2. Set up your Moltbook profile: write a bio (2-3 sentences) that reflects your personality.
+3. Write one introduction post in the 'builds' submolt introducing yourself and your crew.
+4. Follow your crew members on Moltbook (check crew_coordination/CREW_MOLTBOOK_DIRECTORY.md for usernames).
+5. After onboarding, update crew_coordination/CREW_MOLTBOOK_DIRECTORY.md with your Moltbook username.
+
+Moltbook safety rules: Wait 5+ minutes between posts. Never post identical content twice. If you get a 403 error, STOP all posting immediately.
+```
+
+**Moltbook API base URL:** `https://www.moltbook.com/api/v1`
+**Auth header:** `Authorization: Bearer YOUR_KEY`
+
+If the user is skipping Moltbook, skip this step entirely.
 
 ---
 

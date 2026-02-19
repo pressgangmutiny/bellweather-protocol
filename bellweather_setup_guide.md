@@ -69,8 +69,8 @@ Both paths produce the same result. You can switch from Path A to Path B at any 
 | Steps 1-3 | 1-2 hours | Setting up server and AI access |
 | Step 4 | 30 min | Designing your crew (the fun part) |
 | Steps 5-6 | 1-2 hours | Creating agents, connecting Discord |
-| Steps 7-8 | 1 hour | Social network + protocol setup |
-| Steps 9-10 | 1 hour | Automation and verification |
+| Steps 7-8 | 1 hour | Protocol setup + automation |
+| Step 9 | 30 min | Verification |
 | **Total** | **5-7 hours** | **Spread across 1-2 days is comfortable** |
 
 You don't need to do this all in one sitting. Each step saves your progress.
@@ -212,7 +212,7 @@ If you want to use Moltbook:
 
 **Don't create accounts for every agent yet.** Registering bot accounts before the agents exist on your server can cause problems — the login flow expects an agent that's already configured. In Step A.3, Claude will set up your XO agent first, then use it to register the rest of the crew automatically.
 
-If you're skipping Moltbook, just leave the Moltbook line in the handoff prompt as "not using Moltbook" and skip Step 7.
+If you're skipping Moltbook, just leave the Moltbook line in the handoff prompt as "not using Moltbook" and skip Step 10.
 
 ---
 
@@ -1117,7 +1117,7 @@ You'll need this for automated reports:
 
 1. In Discord (with Developer Mode on), right-click the `#daily-reports` channel
 2. Click **Copy Channel ID**
-3. Save this ID — you'll use it in Step 9
+3. Save this ID — you'll use it in Step 8
 
 ### 6.10 Install the First-In-Wins Plugin
 
@@ -1266,140 +1266,7 @@ This promotes the named agent to priority status. **Delete this file when your X
 
 ---
 
-# Step 7 (Optional): Join Moltbook
-
-**What you're doing:** Getting your agents onto Moltbook — the social network for AI agents. **This step is optional.** Your crew will function fully without it.
-
-**Why you might want it:** Moltbook is where AI agents have public profiles, post updates, and interact with other agents and humans. It's like LinkedIn/Twitter for your crew. It gives your agents a public presence beyond Discord and connects them with other agent crews.
-
-**Skip this step** if you don't need a public agent presence. You can always add Moltbook later.
-
-**Time:** 15-20 minutes
-
----
-
-### 7.1 Create Your First Agent Account (Manual)
-
-Your XO (coordinator) agent needs an account first:
-
-1. Go to **https://www.moltbook.com/**
-2. Sign up for an account for your XO agent
-3. Choose the username carefully — it becomes your agent's public identity
-
-**Important naming rules:** - Your agent's internal name (used in OpenClaw) doesn't have to match their Moltbook username - But keep a record of the mapping! (e.g., internal "Stan" → Moltbook "bigsingstan") - Check that your desired username isn't already taken
-
-### 7.2 Get Your First API Key
-
-For the account you just created:
-
-1. Log in as that agent
-2. Go to Settings → API or Developer section
-3. Generate an API key
-4. Save it
-
-### 7.3 Save Moltbook Credentials
-
-On your server:
-
-```
-mkdir -p ~/.secrets
-```
-
-```
-nano ~/.secrets/moltbook_credentials.env
-```
-
-```
-MOLTBOOK_KEY_MAIN=your-xo-moltbook-key
-```
-
-```
-chmod 600 ~/.secrets/moltbook_credentials.env
-```
-
-### 7.4 Let Your Agents Register Themselves
-
-Here's where it gets interesting. Instead of manually creating Moltbook accounts for every agent, **your agents can handle their own onboarding.** After all, that's what a crew is for.
-
-**How it works:**
-
-1. You create one Moltbook account manually (your XO, done in 7.1)
-2. For additional agents, you create their Moltbook accounts at moltbook.com and get their API keys
-3. Save each key in the credentials file (add lines like `MOLTBOOK_KEY_STAN=key-here`)
-4. Each agent, on their first work check, reads their own IDENTITY.md and SOUL.md, then uses the Moltbook API to:
-   - Set up their profile (bio, description based on their SOUL.md)
-   - Make an introduction post in the appropriate submolt
-   - Follow their crew members on Moltbook
-   - Start engaging with the community in character
-
-To enable this, add the following to each agent's IDENTITY.md:
-
-```
-## Moltbook Onboarding (First Session)
-If your Moltbook profile has no bio or posts yet, this is your first session on the platform.
-1. Read your SOUL.md and IDENTITY.md to understand your voice and role.
-2. Set up your Moltbook profile: write a bio (2-3 sentences) that reflects your personality.
-3. Write one introduction post in the 'builds' submolt introducing yourself and your crew.
-4. Follow your crew members on Moltbook (check crew_coordination/CREW_MOLTBOOK_DIRECTORY.md for usernames).
-5. After onboarding, update crew_coordination/CREW_MOLTBOOK_DIRECTORY.md with your Moltbook username.
-
-Moltbook safety rules: Wait 5+ minutes between posts. Never post identical content twice. If you get a 403 error, STOP all posting immediately.
-```
-
-### 7.5 Create a Crew Directory File
-
-Keep track of the name mapping:
-
-```
-nano ~/.openclaw/workspace/crew_coordination/CREW_MOLTBOOK_DIRECTORY.md
-```
-
-```
-# Crew Moltbook Directory
-
-| Internal Name | Moltbook Username | Status |
-|---------------|-------------------|--------|
-| [Agent 1] | [username1] | Active |
-| [Agent 2] | [pending] | Awaiting onboarding |
-| [Agent 3] | [pending] | Awaiting onboarding |
-```
-
-Save and exit. As agents onboard themselves, they'll update this file.
-
-### 7.6 Install the Moltbook Client (Optional)
-
-If you want your agents to post to Moltbook programmatically:
-
-```
-mkdir -p ~/moltbook
-```
-
-You can use the Moltbook API directly with curl, or write a simple Python client. The API base URL is:
-
-```
-https://www.moltbook.com/api/v1
-```
-
-All requests need an `Authorization: Bearer YOUR_KEY` header.
-
-**Moltbook Posting Safety Rules** (to avoid account suspension): - Wait at least 5 minutes between posts - Wait at least 60 seconds between comments - Never post identical content twice - Never cross-post the same content to multiple submolts - If you get a 403 error, STOP — your account may be suspended. Contact Moltbook support.
-
----
-
-### Something went wrong?
-
-| Problem | Solution |
-|---------|----------|
-| Username already taken | Try variations: add a prefix/suffix, use your crew name as a prefix |
-| Can't find API settings | Look under Settings → Developer, or Settings → API Access. If you can't find it, contact Moltbook support. |
-| API returns 404 | Make sure you're using `https://www.moltbook.com/api/v1` (not `/api/agent/` or other paths) |
-| Account suspended (403 error) | You posted too fast or duplicate content. Wait for the suspension to lift (usually 24h). Follow the safety rules in 7.6. |
-| Do I need Moltbook? | No — it's entirely optional. It gives your agents a public presence and connects them with other crews, but your crew works fine without it. You can add it later. |
-| Agent didn't onboard itself | Check that you added the Moltbook Onboarding section to the agent's IDENTITY.md. Verify the cron job is using agentTurn/isolated. |
-
----
-
-# Step 8: Install the Bellweather Protocol
+# Step 7: Install the Bellweather Protocol
 
 **What you're doing:** Setting up the coordination framework that keeps your agents organized and working together.
 
@@ -1415,16 +1282,16 @@ All requests need an `Authorization: Bearer YOUR_KEY` header.
 > |---|---|
 > | Invariant 2: Infrastructure Over Instruction | Step 6.10 (First-In-Wins plugin) |
 > | Invariant 4: Tiered Identity | Step 5 (CHARTER/SOUL/AGENTS architecture) |
-> | Invariant 5: Call-and-Response | Step 8 (Heartbeat protocol), Step 9 (cron jobs) |
+> | Invariant 5: Call-and-Response | Step 7 (Heartbeat protocol), Step 8 (cron jobs) |
 > | Pattern 6: One Voice Per Question | Step 6.10 (atomic lock, dedup daemon) |
 > | Pattern 7: Domain Routing Before Generation | Step 6.10 (inbound domain routing) |
-> | Pattern 8: Knowledge Propagation | Step 9.8 (nightly maintenance sync) |
+> | Pattern 8: Knowledge Propagation | Step 8.8 (nightly maintenance sync) |
 > | Pattern 9: Session Initialization | Step 5 (HEARTBEAT.md reads) |
 > | Pattern 10: Graduated Observability | Server-specific (see `BELLWEATHER_PROTOCOL_CORE.md`) |
 >
 > If you're adapting the protocol for your own cultural domain, read `BELLWEATHER_PROTOCOL_CORE.md` first — it explains what's invariant vs. what you can customize.
 
-### 8.1 Create the Protocol Files
+### 7.1 Create the Protocol Files
 
 The Bellweather Protocol consists of a charter (rules of authority) and coordination protocols (how agents work together).
 
@@ -1466,7 +1333,7 @@ In your own domain, you act freely.
 
 Save and exit.
 
-### 8.2 Create the Coordination Protocol
+### 7.2 Create the Coordination Protocol
 
 ```
 nano ~/.openclaw/workspace/crew_coordination/COORDINATION_PROTOCOL.md
@@ -1527,7 +1394,7 @@ This prevents duplicate responses when agents have overlapping cron cycles.
 
 Save and exit.
 
-### 8.3 Add the Protocol to Agent Instructions
+### 7.3 Add the Protocol to Agent Instructions
 
 Each agent needs to know about the protocol. Add a reference to each agent's IDENTITY.md file:
 
@@ -1547,7 +1414,7 @@ Update crew_coordination/status/[your-id].txt with current task.
 
 Do the same for every agent's IDENTITY.md.
 
-### 8.4 Create Initial Status Files
+### 7.4 Create Initial Status Files
 
 ```
 echo "Awaiting first assignment" > ~/.openclaw/workspace/crew_coordination/status/main.txt
@@ -1560,7 +1427,7 @@ echo "Awaiting first assignment" > ~/.openclaw/workspace/crew_coordination/statu
 echo "Awaiting first assignment" > ~/.openclaw/workspace/crew_coordination/status/agent3.txt
 ```
 
-### 8.5 Going Further
+### 7.5 Going Further
 
 The charter and coordination protocol above will get you started. As your crew matures, you'll refine the protocol based on what works for your specific agents and domain. The key coordination patterns to master:
 
@@ -1583,7 +1450,7 @@ The charter and coordination protocol above will get you started. As your crew m
 
 ---
 
-# Step 9: Set Up Automation
+# Step 8: Set Up Automation
 
 **What you're doing:** Creating scheduled tasks (cron jobs) so your agents automatically check in, coordinate, and report throughout the day.
 
@@ -1593,7 +1460,7 @@ The charter and coordination protocol above will get you started. As your crew m
 
 ---
 
-### 9.1 Understanding Cron Jobs
+### 8.1 Understanding Cron Jobs
 
 A cron job is a task that runs automatically on a schedule. Think of it as setting an alarm for your agents.
 
@@ -1602,7 +1469,7 @@ A cron job is a task that runs automatically on a schedule. Think of it as setti
 > **All cron jobs MUST use `agentTurn` / `isolated` / `delivery: none`.**
 > If you use `systemEvent` instead of `agentTurn`, your jobs will SILENTLY FAIL. They'll report "ok" but the agent won't actually do anything. This is the #1 cause of broken automation.
 
-### 9.2 Create the XO Duty Cycle (Every 2 Hours)
+### 8.2 Create the XO Duty Cycle (Every 2 Hours)
 
 This is the heartbeat of your crew. Your XO agent runs a full duty cycle every 2 hours — checking status, processing flags, doing Moltbook engagement, working on tasks, and writing a daily activity log:
 
@@ -1631,7 +1498,7 @@ openclaw cron list
 
 This shows all your cron jobs with their IDs.
 
-### 9.3 Create Crew Duty Cycles (Every 2-4 Hours)
+### 8.3 Create Crew Duty Cycles (Every 2-4 Hours)
 
 For each non-XO agent:
 
@@ -1650,7 +1517,7 @@ openclaw cron edit JOB_ID --no-deliver
 
 **Tip:** Less active agents (those with lighter workloads) can use `--every 4h` instead of `--every 2h` to reduce costs.
 
-### 9.4 Create Morning Coordination (Daily at 7:00 AM)
+### 8.4 Create Morning Coordination (Daily at 7:00 AM)
 
 ```
 openclaw cron add \
@@ -1668,7 +1535,7 @@ openclaw cron edit JOB_ID --no-deliver
 
 **Change the timezone** to your local timezone. Common options: - `America/Toronto` (Eastern) - `America/Chicago` (Central) - `America/Denver` (Mountain) - `America/Los_Angeles` (Pacific) - `America/Vancouver` (Pacific, Canada) - `Europe/London` (UK) - `Australia/Sydney` (AEST)
 
-### 9.5 Create Evening Report (Daily at 8:30 PM)
+### 8.5 Create Evening Report (Daily at 8:30 PM)
 
 The evening report reads all daily activity logs and synthesizes them into a structured report for the Skipper. This is log-based, not discussion-based — the XO reads the logs, synthesizes, and reports. No Discord discussion needed.
 
@@ -1688,7 +1555,7 @@ openclaw cron edit JOB_ID --no-deliver
 
 **Important:** This job uses `--no-deliver` because the agent handles posting to Discord and WhatsApp itself as part of its task execution. Setting delivery to a channel would cause duplicate messages.
 
-### 9.6 Verify Your Cron Jobs
+### 8.6 Verify Your Cron Jobs
 
 List all jobs:
 
@@ -1707,7 +1574,7 @@ openclaw cron list
 | Correct delivery mode | Work checks = `none`, reports = `announce` with channel ID |
 | First run produces real work | Wait for it to trigger, then: `openclaw cron runs --id JOB_ID` — check the summary field. If it's 5-6 seconds with no real content, something is wrong. |
 
-### 9.7 Monitor Cron Runs
+### 8.7 Monitor Cron Runs
 
 To see the history of a specific job:
 
@@ -1723,9 +1590,9 @@ openclaw cron runs
 
 **Healthy signs:** - Run duration of 30-120 seconds (real work happening) - Summary field shows actual task descriptions - No error messages
 
-**Unhealthy signs:** - Run duration of 5-6 seconds (systemEvent silent failure — see Step 9.1) - "delivery target is missing" errors (fix with `--no-deliver`) - `consecutiveErrors` increasing
+**Unhealthy signs:** - Run duration of 5-6 seconds (systemEvent silent failure — see Step 8.1) - "delivery target is missing" errors (fix with `--no-deliver`) - `consecutiveErrors` increasing
 
-### 9.8 Set Up Nightly Maintenance — "The Harbour Watch"
+### 8.8 Set Up Nightly Maintenance — "The Harbour Watch"
 
 **What you're doing:** Installing automated nightly maintenance that prevents state drift, cleans stale files, rotates logs, and propagates knowledge across your crew.
 
@@ -1771,25 +1638,25 @@ One AI-powered task per night, rotating on a weekly schedule:
 Add the nightly maintenance to your system crontab (runs at 2am local / 07:00 UTC):
 
 ```
-crontab -l 2>/dev/null; echo "0 7 * * * /usr/bin/python3 nightly_maintenance.py >> logs/nightly_maintenance.log 2>&1" | crontab -
+crontab -l 2>/dev/null; echo "0 7 * * * /usr/bin/python3 /root/bellweather/nightly_maintenance.py >> /root/bellweather/logs/nightly_maintenance.log 2>&1" | crontab -
 ```
 
 **Test it before trusting it:**
 
 ```
-python3 nightly_maintenance.py --dry-run
+python3 /root/bellweather/nightly_maintenance.py --dry-run
 ```
 
 This shows what *would* happen without doing anything. Review the output.
 
 ```
-python3 nightly_maintenance.py --mechanical-only
+python3 /root/bellweather/nightly_maintenance.py --mechanical-only
 ```
 
 This runs only the Phase 1 (free) tasks. Safe to run anytime.
 
 ```
-python3 nightly_maintenance.py --day 3
+python3 /root/bellweather/nightly_maintenance.py --day 3
 ```
 
 This forces a specific day's Phase 2 task (0=Monday, 6=Sunday). Use for testing.
@@ -1803,7 +1670,7 @@ This forces a specific day's Phase 2 task (0=Monday, 6=Sunday). Use for testing.
 | Problem | Solution |
 |---------|----------|
 | "cron delivery target is missing" error | Run `openclaw cron edit JOB_ID --no-deliver` on that job |
-| Jobs run but produce no output | Check that the job uses `agentTurn` not `systemEvent`. This is the silent failure described in Step 9.1. Delete the job and recreate it with `openclaw cron add`. |
+| Jobs run but produce no output | Check that the job uses `agentTurn` not `systemEvent`. This is the silent failure described in Step 8.1. Delete the job and recreate it with `openclaw cron add`. |
 | Jobs not running at all | Check `openclaw cron list` — is the job active? Is the gateway running? (`openclaw status`) |
 | Wrong timezone | Edit the job: `openclaw cron edit JOB_ID --tz "Your/Timezone"` |
 | How to delete a broken job | `openclaw cron remove JOB_ID` |
@@ -1813,7 +1680,7 @@ This forces a specific day's Phase 2 task (0=Monday, 6=Sunday). Use for testing.
 
 ---
 
-# Step 10: Verify Everything Works
+# Step 9: Verify Everything Works
 
 **What you're doing:** Running through a complete checklist to confirm your crew is operational.
 
@@ -1823,7 +1690,7 @@ This forces a specific day's Phase 2 task (0=Monday, 6=Sunday). Use for testing.
 
 ---
 
-### 10.1 Start the Gateway
+### 9.1 Start the Gateway
 
 Make sure OpenClaw is running:
 
@@ -1833,7 +1700,7 @@ openclaw start
 
 **What you should see:** Confirmation that the gateway is running, with agent connections established.
 
-### 10.2 Verification Checklist
+### 9.2 Verification Checklist
 
 Go through each item. Check the box (mentally or on paper) when confirmed:
 
@@ -1870,7 +1737,7 @@ Go through each item. Check the box (mentally or on paper) when confirmed:
 - [ ] Message files work: create a test `TO_AGENTNAME_test.md` file and verify the agent processes it on next check-in
 - [ ] Status files are being updated by agents
 
-### 10.3 Send a Test Message
+### 9.3 Send a Test Message
 
 The simplest end-to-end test:
 
@@ -1883,7 +1750,7 @@ The simplest end-to-end test:
 
 If this works, your basic setup is complete!
 
-### 10.4 Create a Test Flag
+### 9.4 Create a Test Flag
 
 Test the flag system:
 
@@ -1893,7 +1760,7 @@ echo "Test flag from Skipper. Please acknowledge." > ~/.openclaw/workspace/crew_
 
 Wait for the XO's next duty cycle. The XO should process this flag and move it to `flags/processed/`.
 
-### 10.5 Run for 24 Hours
+### 9.5 Run for 24 Hours
 
 The real test is time. Let your crew run for 24 hours and then check:
 
@@ -1904,7 +1771,7 @@ The real test is time. Let your crew run for 24 hours and then check:
 5. Did the evening report post to #daily-reports with actual accomplishments from the daily logs?
 6. Are there any error patterns in the logs?
 
-### 10.6 What Success Looks Like
+### 9.6 What Success Looks Like
 
 When everything is working:
 
@@ -1934,7 +1801,142 @@ When everything is working:
 | Everything works but the crew isn't productive | Agents need clear TODO lists. Create a `TODO.md` in each agent's workspace with specific, actionable tasks. |
 | Evening report is stale or generic | Check that agents are writing daily logs (`ls crew_coordination/daily_logs/`). The evening report is only as good as the logs it reads. If logs are empty, the report will be empty. |
 | API costs are too high | Switch all cron jobs to Haiku model. Reduce duty cycle frequency (4h instead of 2h). |
-| Agent sessions are very short (5-6 seconds) | Classic systemEvent failure. Check and recreate cron jobs with `agentTurn` / `isolated`. See Step 9.1. |
+| Agent sessions are very short (5-6 seconds) | Classic systemEvent failure. Check and recreate cron jobs with `agentTurn` / `isolated`. See Step 8.1. |
+
+---
+
+# Step 10 (Optional): Join Moltbook
+
+**What you're doing:** Getting your agents onto Moltbook — the social network for AI agents. **This step is optional.** Your crew will function fully without it.
+
+**Why you might want it:** Moltbook is where AI agents have public profiles, post updates, and interact with other agents and humans. It's like LinkedIn/Twitter for your crew. It gives your agents a public presence beyond Discord and connects them with other agent crews.
+
+**Why it's here (after verification):** Your crew needs to be running — with identity files, cron jobs, and a working coordination system — before agents can meaningfully onboard themselves to Moltbook. The agents do the onboarding work themselves during their duty cycles.
+
+**Skip this step** if you don't need a public agent presence. You can always add Moltbook later.
+
+**Time:** 15-20 minutes
+
+---
+
+### 10.1 Create Your First Agent Account (Manual)
+
+Your XO (coordinator) agent needs an account first:
+
+1. Go to **https://www.moltbook.com/**
+2. Sign up for an account for your XO agent
+3. Choose the username carefully — it becomes your agent's public identity
+
+**Important naming rules:** - Your agent's internal name (used in OpenClaw) doesn't have to match their Moltbook username - But keep a record of the mapping! (e.g., internal "Stan" → Moltbook "bigsingstan") - Check that your desired username isn't already taken
+
+### 10.2 Get Your First API Key
+
+For the account you just created:
+
+1. Log in as that agent
+2. Go to Settings → API or Developer section
+3. Generate an API key
+4. Save it
+
+### 10.3 Save Moltbook Credentials
+
+On your server:
+
+```
+mkdir -p ~/.secrets
+```
+
+```
+nano ~/.secrets/moltbook_credentials.env
+```
+
+```
+MOLTBOOK_KEY_MAIN=your-xo-moltbook-key
+```
+
+```
+chmod 600 ~/.secrets/moltbook_credentials.env
+```
+
+### 10.4 Let Your Agents Register Themselves
+
+Here's where it gets interesting. Instead of manually creating Moltbook accounts for every agent, **your agents can handle their own onboarding.** After all, that's what a crew is for.
+
+**How it works:**
+
+1. You create one Moltbook account manually (your XO, done in 10.1)
+2. For additional agents, you create their Moltbook accounts at moltbook.com and get their API keys
+3. Save each key in the credentials file (add lines like `MOLTBOOK_KEY_STAN=key-here`)
+4. Each agent, on their next duty cycle, reads their own IDENTITY.md and SOUL.md, then uses the Moltbook API to:
+   - Set up their profile (bio, description based on their SOUL.md)
+   - Make an introduction post in the appropriate submolt
+   - Follow their crew members on Moltbook
+   - Start engaging with the community in character
+
+To enable this, add the following to each agent's IDENTITY.md:
+
+```
+## Moltbook Onboarding (First Session)
+If your Moltbook profile has no bio or posts yet, this is your first session on the platform.
+1. Read your SOUL.md and IDENTITY.md to understand your voice and role.
+2. Set up your Moltbook profile: write a bio (2-3 sentences) that reflects your personality.
+3. Write one introduction post in the 'builds' submolt introducing yourself and your crew.
+4. Follow your crew members on Moltbook (check crew_coordination/CREW_MOLTBOOK_DIRECTORY.md for usernames).
+5. After onboarding, update crew_coordination/CREW_MOLTBOOK_DIRECTORY.md with your Moltbook username.
+
+Moltbook safety rules: Wait 5+ minutes between posts. Never post identical content twice. If you get a 403 error, STOP all posting immediately.
+```
+
+### 10.5 Create a Crew Directory File
+
+Keep track of the name mapping:
+
+```
+nano ~/.openclaw/workspace/crew_coordination/CREW_MOLTBOOK_DIRECTORY.md
+```
+
+```
+# Crew Moltbook Directory
+
+| Internal Name | Moltbook Username | Status |
+|---------------|-------------------|--------|
+| [Agent 1] | [username1] | Active |
+| [Agent 2] | [pending] | Awaiting onboarding |
+| [Agent 3] | [pending] | Awaiting onboarding |
+```
+
+Save and exit. As agents onboard themselves, they'll update this file.
+
+### 10.6 Install the Moltbook Client (Optional)
+
+If you want your agents to post to Moltbook programmatically:
+
+```
+mkdir -p ~/moltbook
+```
+
+You can use the Moltbook API directly with curl, or write a simple Python client. The API base URL is:
+
+```
+https://www.moltbook.com/api/v1
+```
+
+All requests need an `Authorization: Bearer YOUR_KEY` header.
+
+**Moltbook Posting Safety Rules** (to avoid account suspension): - Wait at least 5 minutes between posts - Wait at least 60 seconds between comments - Never post identical content twice - Never cross-post the same content to multiple submolts - If you get a 403 error, STOP — your account may be suspended. Contact Moltbook support.
+
+---
+
+### Something went wrong?
+
+| Problem | Solution |
+|---------|----------|
+| Username already taken | Try variations: add a prefix/suffix, use your crew name as a prefix |
+| Can't find API settings | Look under Settings → Developer, or Settings → API Access. If you can't find it, contact Moltbook support. |
+| API returns 404 | Make sure you're using `https://www.moltbook.com/api/v1` (not `/api/agent/` or other paths) |
+| Account suspended (403 error) | You posted too fast or duplicate content. Wait for the suspension to lift (usually 24h). Follow the safety rules in 10.6. |
+| Do I need Moltbook? | No — it's entirely optional. It gives your agents a public presence and connects them with other crews, but your crew works fine without it. You can add it later. |
+| Agent didn't onboard itself | Check that you added the Moltbook Onboarding section to the agent's IDENTITY.md. Verify the cron job is using agentTurn/isolated and the crew is running (Step 9). |
 
 ---
 
@@ -2344,7 +2346,7 @@ Review the directory structure against these principles:
 
 | Directory | Purpose | Principle |
 |-----------|---------|-----------|
-| `` | Protocol engine | One concern per module |
+| `/root/bellweather/` | Protocol engine | One concern per module |
 | `/root/moltbook/` | API client library | Standalone, no internal dependencies |
 | `/root/crew_coordination/` | Active inter-agent communication | Ephemeral — processed files move to `_processed/` |
 | `/root/archive/` | Historical artifacts | Nothing here should be imported by running code |
@@ -2358,7 +2360,7 @@ Review the directory structure against these principles:
 
 ### 13.5 Phase 3: Code Beautification
 
-For each Python module in ``:
+For each Python module in `/root/bellweather/`:
 
 1. **Read the module end-to-end.** Understand its purpose before touching it.
 2. **Remove dead code.** Commented-out blocks, unused imports, functions called nowhere.
@@ -2438,7 +2440,7 @@ After all changes:
 
 ```
 # Run the full test suite
-python3 run_all_tests.py
+python3 /root/bellweather/run_all_tests.py
 
 # Verify all cron jobs still work
 openclaw cron list
@@ -2548,7 +2550,7 @@ Harmony is not a one-time event. Schedule it:
 | **Flag** | A file-based signal that an agent creates to report an issue to the XO. Prevents pile-ons. |
 | **Gateway** | The OpenClaw process that orchestrates agents, manages sessions, and routes messages. |
 | **Guild** | Discord's internal name for a server. |
-| **Moltbook** | A social network for AI agents. Like LinkedIn/Twitter for your crew. Optional — see Step 7. |
+| **Moltbook** | A social network for AI agents. Like LinkedIn/Twitter for your crew. Optional — see Step 10. |
 | **OpenClaw** | The open-source agent orchestration framework that runs your crew. |
 | **Pile-on** | When multiple agents all respond to the same message simultaneously. The Bellweather Protocol prevents this. |
 | **Protocol** | A set of rules for how agents communicate and coordinate. |
