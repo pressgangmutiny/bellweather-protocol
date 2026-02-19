@@ -172,7 +172,6 @@ What to clean, when, how often. The invariant is "prevent state drift." The cron
 **Observability:** Ambient audio sonification (just-intonation chord tones, graduated dissonance, activity-driven chord progression)
 **Maintenance:** Nightly harbour watch at 07:00 UTC
 
-Full codebase: `/root/bellweather/`
 Setup guide: `CLAUDE.md`
 
 ---
