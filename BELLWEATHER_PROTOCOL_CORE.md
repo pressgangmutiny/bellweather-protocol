@@ -14,6 +14,16 @@ The Bellweather Protocol is the principle that human cultural coordination forms
 
 The protocol is not prescriptive about *which* cultural forms a server uses. Shanties, kitchen brigade calls, jazz ensemble patterns, military drill, theatrical stage management, sports team playbooks — any cultural domain with proven coordination forms is valid. The protocol prescribes *how* cultural forms must be used: as dual-layer encoding, not as decoration.
 
+### The Core Trade-Off
+
+**This protocol does not optimize for speed.** Agents are fast enough. Every generation of model is faster than the last; speed is a commodity. What agents lack — and what degrades multi-agent systems — is accuracy, comprehensiveness, and coordination. Every design decision in this protocol trades speed for these three properties:
+
+- **Accuracy:** The right agent answers, with the right information, checked against the right context.
+- **Comprehensiveness:** No knowledge silos. No half-answers. No skipped context reads.
+- **Coordination:** No pile-ons. No silent dependencies. No duplicate work. No missed handoffs.
+
+**The priority ordering:** Budget → Accuracy & Coordination → Speed. Optimize accuracy and coordination within your token budget. Speed is last. When a design choice pits speed against accuracy, comprehensiveness, or coordination — choose the latter. When a design choice increases accuracy but blows the budget — find the cheapest path to accuracy instead.
+
 ---
 
 ## Tier 1: Absolute Invariants
