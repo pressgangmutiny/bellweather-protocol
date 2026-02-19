@@ -602,11 +602,11 @@ Automated nightly maintenance prevents state drift, disk exhaustion, and silent 
 
 ```bash
 # Install nightly maintenance (runs at 2am local time / 07:00 UTC)
-crontab -l 2>/dev/null; echo "0 7 * * * /usr/bin/python3 nightly_maintenance.py >> logs/nightly_maintenance.log 2>&1" | crontab -
+crontab -l 2>/dev/null; echo "0 7 * * * /usr/bin/python3 /root/bellweather/nightly_maintenance.py >> /root/bellweather/logs/nightly_maintenance.log 2>&1" | crontab -
 
 # Test it
-python3 nightly_maintenance.py --dry-run         # plan only
-python3 nightly_maintenance.py --mechanical-only  # safe tasks only
+python3 /root/bellweather/nightly_maintenance.py --dry-run         # plan only
+python3 /root/bellweather/nightly_maintenance.py --mechanical-only  # safe tasks only
 ```
 
 **What it does (Phase 1 — Mechanical, every night, $0):**
