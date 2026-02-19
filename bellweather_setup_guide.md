@@ -1617,25 +1617,25 @@ One AI-powered task per night, rotating on a weekly schedule:
 Add the nightly maintenance to your system crontab (runs at 2am local / 07:00 UTC):
 
 ```
-crontab -l 2>/dev/null; echo "0 7 * * * /usr/bin/python3 /root/bellweather/nightly_maintenance.py >> /root/bellweather/logs/nightly_maintenance.log 2>&1" | crontab -
+crontab -l 2>/dev/null; echo "0 7 * * * /usr/bin/python3 nightly_maintenance.py >> logs/nightly_maintenance.log 2>&1" | crontab -
 ```
 
 **Test it before trusting it:**
 
 ```
-python3 /root/bellweather/nightly_maintenance.py --dry-run
+python3 nightly_maintenance.py --dry-run
 ```
 
 This shows what *would* happen without doing anything. Review the output.
 
 ```
-python3 /root/bellweather/nightly_maintenance.py --mechanical-only
+python3 nightly_maintenance.py --mechanical-only
 ```
 
 This runs only the Phase 1 (free) tasks. Safe to run anytime.
 
 ```
-python3 /root/bellweather/nightly_maintenance.py --day 3
+python3 nightly_maintenance.py --day 3
 ```
 
 This forces a specific day's Phase 2 task (0=Monday, 6=Sunday). Use for testing.
@@ -2325,7 +2325,7 @@ Review the directory structure against these principles:
 
 | Directory | Purpose | Principle |
 |-----------|---------|-----------|
-| `/root/bellweather/` | Protocol engine | One concern per module |
+| `` | Protocol engine | One concern per module |
 | `/root/moltbook/` | API client library | Standalone, no internal dependencies |
 | `/root/crew_coordination/` | Active inter-agent communication | Ephemeral — processed files move to `_processed/` |
 | `/root/archive/` | Historical artifacts | Nothing here should be imported by running code |
@@ -2339,7 +2339,7 @@ Review the directory structure against these principles:
 
 ### 13.5 Phase 3: Code Beautification
 
-For each Python module in `/root/bellweather/`:
+For each Python module in ``:
 
 1. **Read the module end-to-end.** Understand its purpose before touching it.
 2. **Remove dead code.** Commented-out blocks, unused imports, functions called nowhere.
@@ -2419,7 +2419,7 @@ After all changes:
 
 ```
 # Run the full test suite
-python3 /root/bellweather/run_all_tests.py
+python3 run_all_tests.py
 
 # Verify all cron jobs still work
 openclaw cron list

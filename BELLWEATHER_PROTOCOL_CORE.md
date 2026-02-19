@@ -248,5 +248,189 @@ These contributions strengthen the protocol for all servers.
 
 ---
 
+## Appendix A: Technical Innovation Claims
+
+**Purpose:** This section formally describes the novel technical contributions of the Bellweather Protocol as prior art. Each claim identifies a specific problem, the technical solution, and why existing approaches are insufficient.
+
+**Date of first implementation:** February 2026
+**Implementer:** Pressgang Mutiny, Toronto
+
+---
+
+### Claim 1: Three-Tier Agent Configuration with Compliance/Character Separation
+
+**Problem:** In multi-agent LLM systems, agent behavioral configuration is typically stored in a single prompt or a flat collection of instructions. This produces two failures: (a) configuration entropy — the same rule duplicated across agents drifts over time as copies diverge, and (b) compliance violations — behavioral instructions embedded in personality prompts are unreliable because language model generation is probabilistic, and personality-layer instructions are routinely ignored or reinterpreted.
+
+**Solution:** A three-tier configuration architecture where each tier has a distinct enforcement characteristic:
+
+1. **Constitutional tier** (e.g., CREW_CHARTER.md) — Shared values, hard rules, and coordination protocol. Symlinked across all agent workspaces so there is exactly one source file. Read by every agent at every session start. Contains rules that are *also* enforced by programmatic gates (Infrastructure Over Instruction principle), so the prompt-level encoding serves as frequency reduction while the gate serves as guarantee.
+
+2. **Identity tier** (e.g., SOUL.md) — Per-agent personality, voice, and character ONLY. Explicitly does NOT contain operational rules, compliance requirements, or coordination protocol. The critical insight: personality-layer behavioral instructions are unreliable for enforcing rules. SOUL.md is for character, not compliance. Any rule that appears in SOUL.md and is also critical must have a corresponding programmatic gate elsewhere.
+
+3. **Operational tier** (e.g., AGENTS.md) — Shared operational reference containing dispatch routing rules, tool access procedures, error handling protocols, and session initialization sequences. Separates "how to do your job" from "who you are" and "what we all believe."
+
+**No-duplication rule:** Each fact, rule, or instruction exists in exactly one tier. Higher tiers override lower tiers on conflict: Constitutional > Operational > Identity > Experiential (per-agent memory).
+
+**Session initialization protocol (watch handover):** A defined multi-step sequence of state reads at session start — constitutional layer, identity mappings, personality, user context, task list, daily memory, cross-context log, persistent memory, active commitments, escalation results, tool reference, and recent channel history — ensuring no agent acts on stale context.
+
+**What is novel:** The explicit separation of character from compliance in LLM agent configuration, the formalization that personality-layer behavioral instructions are unreliable and must not be trusted for must-hold rules, and the single-source-of-truth symlink pattern preventing configuration entropy across multiple agent workspaces.
+
+**Measured results:** 49% reduction in total configuration lines (675→347) with 2.2x improvement in useful-content ratio. 4 agents maintaining distinct personalities while sharing operational rules without behavioral drift.
+
+---
+
+### Claim 2: File-Based Asynchronous Inter-Agent Communication with Human Inspectability
+
+**Problem:** Multi-agent LLM systems need to communicate between agents that run in isolated processes (separate sessions, separate context windows, no shared memory). Existing approaches use in-memory message queues, database tables, or API calls — all of which are opaque to human operators. When coordination fails, humans cannot inspect the message flow without specialized tooling.
+
+**Solution:** A filesystem-based communication protocol where inter-agent messages are human-readable files in a shared directory, using filename conventions for routing and file lifecycle for acknowledgment:
+
+1. **Message protocol:** Agent A creates `TO_AGENTB_topic.md` in a shared coordination directory. Agent B reads it during session initialization. After processing, the file is moved to `_processed/` subdirectory. The operator can inspect coordination state at any time with standard filesystem tools (`ls`, `cat`, `less`).
+
+2. **Flag protocol:** Any agent can create `FLAG_YYYYMMDD_HHMM_agentname_topic.md` to report an issue asynchronously. Flags are processed by the coordinator agent. Resolution is detected by content analysis (presence of words like "resolved", "closed", "fixed", "done"). Resolved or aged flags are automatically archived.
+
+3. **Status files:** Each agent maintains a lightweight status file (`status/agentname.txt`) updated at session start and on task switch, providing heartbeat-like presence without dedicated heartbeat infrastructure.
+
+4. **Escalation results:** Higher-model Claude sessions write results as `FROM_CLAUDE_CODE_*.md` files, picked up by agents at next watch handover. The file-based pattern means escalation results survive process restarts and are inspectable by operators.
+
+5. **Atomic file operations:** All file creation uses atomic patterns (write to `.tmp`, rename) to prevent partial reads. Claim arbitration uses `O_EXCL` flag (kernel-level atomic create-if-not-exists) to prevent TOCTOU race conditions without external services.
+
+6. **Lifecycle management:** Nightly archival moves processed files older than 7 days to `_processed/` directories, preventing unbounded directory growth while preserving audit trail.
+
+**What is novel:** Using the filesystem as the primary inter-agent communication medium in multi-agent LLM systems, with the explicit design requirement that human operators can inspect, understand, and intervene in agent coordination using only standard filesystem tools. The combination of human-readable file-based messaging with atomic file operations for race condition prevention, and content-based resolution detection for flag lifecycle management.
+
+---
+
+### Claim 3: Domain-Expert Routing Before Generation ("Right Voice, Once")
+
+**Problem:** When multiple LLM agents share a communication channel (e.g., Discord), the naive approach is a speed race: all agents generate responses, and the first one to finish "wins." This wastes computation (all agents generate, most are discarded), produces inaccurate responses (the fastest agent is not necessarily the most knowledgeable), and risks message cascades (multiple agents post before any can detect duplication).
+
+**Solution:** A multi-stage inbound classification and routing system that determines which agent should respond *before* any agent generates a response:
+
+1. **Domain keyword routing:** Inbound messages are scanned for domain-specific keyword patterns. Messages with ≥2 domain keywords are routed to the specialist agent (e.g., tour/logistics keywords → logistics agent, grant/funding keywords → grants agent, culture/community keywords → culture agent). The specialist generates; all other agents are suppressed. The accuracy gain comes from expertise routing, not model size.
+
+2. **Social gating:** Messages matching social/ambient patterns (greetings, thanks, general conversation) are routed to the coordinator agent only. One voice responds to social messages — "the shantyman calls, the crew doesn't shout back."
+
+3. **Explicit mention bypass:** Messages containing explicit @mentions of specific agents bypass domain routing and go directly to the mentioned agent(s).
+
+4. **Dispatch rewriting:** When an agent generates a verbose response (>120 characters) that contains domain keywords for another specialist, the response is automatically rewritten to a short dispatch message plus an @mention of the specialist — preventing a non-expert from answering at length when a domain expert is available.
+
+5. **Atomic first-responder claim:** After routing, an `O_EXCL` lock file prevents duplicate responses from agents that pass through the routing filter simultaneously. A re-read-after-lock pattern prevents the TOCTOU race between lock acquisition and state check.
+
+6. **Per-channel state isolation:** State is keyed by channel/conversation ID, preventing cross-channel interference. State entries have TTL-based eviction to prevent unbounded growth.
+
+7. **Cooldown detection:** Bot-echo suppression using per-channel `lastOutboundAt` timestamps prevents agents from responding to their own colleagues' messages as if they were human messages.
+
+8. **Delegation chain:** When a responding agent's message contains an explicit @mention of another agent, the mentioned agent is authorized to respond (strict Discord ID mention detection, not text name matching).
+
+9. **Fallback dispatcher:** A JSON override file allows promoting an alternate agent when the primary coordinator is unavailable (suspended, offline), without code changes or restarts.
+
+10. **Safety net dedup daemon:** An independent process monitors outbound messages with a settle window (6 seconds), catching any duplicates that escape the primary gate due to process crashes, network partitions, or race conditions.
+
+11. **Append-only dispatch log:** All routing decisions are logged to a TSV file for auditing, enabling post-hoc analysis of routing accuracy and identification of keyword pattern gaps.
+
+**Design priority:** Budget → Accuracy & Coordination → Speed. The protocol optimizes for getting the right expert to respond accurately within budget constraints. Speed is explicitly deprioritized.
+
+**What is novel:** The inversion of the multi-agent response problem from "who responds first" (speed optimization) to "who responds best" (accuracy optimization) via pre-generation domain classification. The combination of domain keyword routing, social gating, dispatch rewriting, atomic deduplication, per-channel state isolation, cooldown detection, delegation chains, and defense-in-depth safety net into a single coordinated dispatch architecture. The explicit design principle that routing to the right domain expert delivers more accuracy gain than upgrading the model size.
+
+---
+
+### Claim 4: Zero-Cost Nightly Maintenance for Multi-Agent Deployments ("The Harbour Watch")
+
+**Problem:** Multi-agent LLM deployments suffer from state drift: expired suspensions persist, log files grow unbounded, coordination files accumulate, stale flags go unprocessed, cron jobs silently fail, and agent knowledge silos develop. Manual maintenance is unsustainable. Existing approaches use expensive LLM calls for maintenance tasks that are fundamentally mechanical.
+
+**Solution:** A two-phase nightly maintenance system:
+
+**Phase 1 — Mechanical tasks (zero API cost, ~5 seconds):**
+1. **Stale state cleanup:** Clear expired rate-limit suspensions from shared state files, preventing agents from honoring stale cached suspension states for hours after actual suspension expires.
+2. **Coordination file archival:** Move TO_/FROM_/BRIEFING_/FLAG_ files older than 7 days to `_processed/` directories, preventing unbounded directory growth while preserving audit trail.
+3. **Log rotation:** Gzip log files exceeding 5MB, remove compressed rotations older than 14 days. Truncate (not delete) active log files to avoid breaking file handles held by running processes.
+4. **Security scanning:** Regex-based scan of all code files for exposed API keys (6 pattern types: Anthropic, OpenAI, Slack, GitHub, AWS, hardcoded passwords) plus credential file permission auditing (verify 600 mode on sensitive files).
+5. **Usage tallying:** Read escalation ledger to compute daily/weekly API costs. Read posting history for activity metrics.
+6. **Cron health verification:** Parse cron job state to identify jobs with consecutive errors, jobs that haven't run in 24+ hours, and disabled jobs.
+7. **Flag cleanup:** Archive resolved flags (detected by content analysis for resolution keywords) and report aging unresolved flags that need human attention.
+8. **Cross-agent knowledge propagation:** Extract `## Shared Knowledge` sections from all agent MEMORY.md files, merge the union of bullet items, and write the merged set back to all agents — ensuring what one agent learns, all agents can access, without exposing per-agent personality or opinions.
+9. **Public documentation sync:** Copy whitelisted documentation files to a persistent Git mirror, scrub server-internal paths from content, and push to a public GitHub repository — keeping public-facing documentation current without manual intervention. Whitelist-only with explicit blocklist safety checks to prevent accidental exposure of private files.
+
+**Phase 2 — Budget-capped rotating LLM sessions:**
+Budget-capped Claude Code sessions rotate through a weekly schedule: security deep audit (Monday, $1), budget analysis (Tuesday, $1), code beautification (Wednesday–Saturday, $2/night), weekly summary (Sunday, $1). Weekly maximum ~$11. Each session runs in a subprocess with hard timeout, permission mode restrictions, and explicit guardrails (no credential access, no cron editing, no identity modification, no deployment).
+
+**Maintenance report:** Each run generates a structured Markdown report in the crew coordination directory with per-task status, sub-details, and summary. Critical security findings trigger a non-zero exit code for future alerting integration.
+
+**Shared lock:** Maintenance acquires an atomic lock file shared with the escalation system, preventing conflicts between nightly maintenance and agent-initiated escalation calls. Stale lock detection (>10 minutes) prevents deadlocks from process crashes.
+
+**What is novel:** The separation of multi-agent maintenance into zero-cost mechanical tasks (filesystem operations, regex scanning, state cleanup) and budget-capped LLM sessions with hard cost controls. The cross-agent knowledge propagation mechanism that merges shared knowledge across agent memory stores while preserving per-agent personality boundaries. The content-based flag resolution detection. The whitelist-only documentation sync with path scrubbing for public repository maintenance.
+
+---
+
+### Claim 5: Budget-First Model Selection with Domain Routing Priority
+
+**Problem:** The conventional approach to model selection in multi-agent systems is capability-first: use the most capable (largest, most expensive) model available, then optimize cost as an afterthought. This produces systems that are accurate but economically unsustainable, especially for continuous-operation multi-agent deployments with many cron jobs and frequent interactions.
+
+**Solution:** Invert the priority ordering to Budget → Accuracy & Coordination → Speed, and combine model selection with domain routing:
+
+1. **Domain routing before model selection:** The dispatch system routes messages to the domain specialist *first*, then the specialist uses the appropriate-tier model for their task type. The accuracy gain from getting the right expert is greater than the accuracy gain from upgrading the model size. A domain specialist on a smaller model outperforms a generalist on a larger model for domain-specific questions.
+
+2. **Three-tier model assignment by task type:**
+   - **Smallest/cheapest model** (e.g., Haiku) for routine heartbeats, simple Discord responses, and duty cycles where the task is well-routed and the required output is short. Budget optimization.
+   - **Mid-tier model** (e.g., Sonnet) for daily reports, morning coordination, complex Discord responses, analysis tasks, and security auditing. The accuracy workhorse — accurate enough for most complex tasks at moderate cost.
+   - **Largest model** (e.g., Opus) for code generation, deep research, and tasks where accuracy is paramount and the budget allows. Reserved for depth-critical work.
+
+3. **Cron staggering:** Agent cron jobs are staggered by 30-minute intervals (Agent A at :00 even hours, Agent B at :30 even hours, Agent C at :00 odd hours, Agent D at :30 odd hours) to prevent resource contention on shared infrastructure and avoid simultaneous Discord responses.
+
+4. **Budget caps at multiple levels:** Per-escalation budget (default + maximum), daily budget cap ($15/day), weekly budget cap for nightly maintenance (~$11/week), and per-cron-job model assignment optimized for the cheapest model accurate enough for the task.
+
+5. **The key insight:** Speed is a commodity — every generation of model is faster than the last. Accuracy and coordination are the scarce resources. Within a budget constraint, maximize accuracy and coordination. Speed is last priority.
+
+**What is novel:** The explicit priority inversion from capability-first to budget-first in multi-agent model selection. The integration of domain routing with model selection such that routing to the right specialist reduces the required model capability. The formalization that domain expertise routing delivers more accuracy improvement than model size upgrading, enabling cost reduction without accuracy loss. The combination of per-task model assignment, budget caps at multiple levels, and cron staggering into a unified cost-optimization strategy.
+
+---
+
+### Claim 6: Cultural Coordination Taxonomy — Systematic Mapping of Human Cultural Forms to Agent Failure Types
+
+**Problem:** Multi-agent coordination failures are typically addressed ad hoc: each failure is treated as a unique engineering problem requiring a novel solution. This ignores centuries of proven human coordination solutions that evolved under real stakes (maritime, military, theatrical, culinary, musical). There is no systematic framework for matching agent coordination failures to the cultural forms that prevent them.
+
+**Solution:** A formal taxonomy mapping cultural forms to coordination failure types, where each mapping includes:
+
+- **Cultural form:** The human tradition (e.g., shanty rhythm, call-and-response, watch rotation)
+- **Failure type:** The canonical coordination failure it prevents (e.g., synchronization, presence verification, coverage, role confusion, cognitive coherence, state blindness, token waste, echo cascade)
+- **Mechanism:** HOW the cultural form prevents the failure — the causal link, not just the analogy
+- **Human layer:** What humans see and understand (the story)
+- **Agent layer:** What agents execute (the protocol rules)
+- **Implementation reference:** Where in the codebase the mapping is realized
+- **Evidence level:** Strong (centuries of human proof + agent data), moderate (human proof, agent data emerging), or emerging (theoretical mapping, limited agent data)
+- **Historical precedent:** Why humans proved it works under real stakes
+
+**The eight mappings in the reference implementation:**
+
+1. **Shanty rhythm/tempo → Synchronization failure.** Mechanism: shared tempo provides coordination clock. Human evidence: 200+ years of maritime work song. Agent implementation: cron staggering, heartbeat intervals.
+2. **Call-and-response → Presence verification failure.** Mechanism: expected response within window; silence = alert. Human evidence: watch-keeping tradition, roll call. Agent implementation: HEARTBEAT_OK acknowledgment, session initialization reads.
+3. **Watch rotations → Coverage failure.** Mechanism: defined coverage periods with handover protocol. Human evidence: naval 4-hour watch system. Agent implementation: cron job scheduling, session handover sequence.
+4. **Quarterdeck dispatch → Role confusion failure.** Mechanism: single dispatcher routes tasks to specialists by domain. Human evidence: naval quarterdeck command structure. Agent implementation: domain keyword routing, atomic first-responder lock.
+5. **Ship's narrative → Cognitive coherence failure.** Mechanism: humans hold coordination frameworks as stories; removing the narrative degrades human understanding, which degrades human guidance, which degrades agent behavior. Human evidence: organizational culture as coordination infrastructure throughout human history. Agent implementation: dual-layer encoding in all configuration and coordination documents.
+6. **Ambient audio sonification → State blindness failure.** Mechanism: continuous audio background with graduated dissonance proportional to coordination struggle severity. Human evidence: engine room monitoring by ear, musical ensemble awareness. Agent implementation: just-intonation chord tones with per-agent instrument timbres, activity-driven chord progression.
+7. **HEARTBEAT_OK → Token waste failure.** Mechanism: 2-token null acknowledgment replaces verbose "nothing to report" responses. Human evidence: watch bell "all's well" signal. Agent implementation: HEARTBEAT_OK pattern, programmatic cancellation of noise tokens.
+8. **File-based async messaging → Echo cascade failure.** Mechanism: write-once message files prevent real-time feedback loops; process-and-archive lifecycle prevents re-processing. Human evidence: ship's log, message board, written orders. Agent implementation: TO_/FROM_ file protocol with _processed/ archival.
+
+**The testability principle:** Culture is testable infrastructure, not metaphor. Each mapping produces measurable coordination metrics: task completion rate, silent dependency rate, human interrupt rate, mean time to coordination restoration, ack-to-lock time, dispatch accuracy.
+
+**What is novel:** The systematic, formal mapping of human cultural coordination forms to specific multi-agent LLM coordination failure types, with causal mechanisms (not just analogies), evidence levels, and measurable metrics. The insight that cultural forms are engineering solutions optimized by centuries of human survival pressure and are directly transferable to agent coordination. The testability principle: if you can't measure whether a cultural form prevents its target failure, it's decoration, not engineering.
+
+---
+
+### Claim 7: Dual-Layer Encoding — One Structure, Two Audiences
+
+**Problem:** Multi-agent systems typically have separate human-facing documentation and machine-facing configuration. These drift apart over time: the documentation describes intended behavior, the configuration implements actual behavior, and the gap widens silently. Human operators lose understanding of what agents actually do, and agents execute rules that diverge from what operators believe they're executing.
+
+**Solution:** Every coordination rule is expressed as a single monolithic structure that humans read as narrative and agents execute as protocol. Not two systems kept in sync. One structure, two audiences.
+
+**The mechanism:** Configuration documents (Charter, Agents, Soul) use natural language with embedded protocol rules. Humans read the narrative and understand the coordination framework as a story (the ship metaphor, the watch rotation, the shanty call). Agents read the same text and extract executable rules (read these files, check these conditions, route to these specialists, respond within these constraints). The narrative IS the protocol. The story IS the state machine.
+
+**The load-bearing insight:** The narrative is not decoration layered on top of a protocol. It is a structural requirement. When the narrative is removed, the human operator loses their grip on the coordination framework, their guidance degrades, and agent behavior follows. This is because humans are part of the system — their understanding constrains their guidance, which constrains agent behavior. The cultural narrative is the human-legible interface to the machine-executable protocol.
+
+**What is novel:** The formalization that human-readable narrative and machine-executable protocol can and should be the same structure in multi-agent LLM systems, not two aligned systems. The insight that the narrative layer is load-bearing — removing it degrades coordination because it degrades human understanding, not because agents need stories. The principle that documentation drift is eliminated by making the documentation and the configuration identical.
+
+---
+
 *The Bellweather Protocol is a project of Pressgang Mutiny, Toronto.*
 *The protocol is open. The reference implementation is ours. The tradition belongs to everyone who builds with it.*
