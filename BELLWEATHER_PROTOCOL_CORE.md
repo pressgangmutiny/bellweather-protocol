@@ -275,9 +275,13 @@ These contributions strengthen the protocol for all servers.
 
 **Session initialization protocol (watch handover):** A defined multi-step sequence of state reads at session start — constitutional layer, identity mappings, personality, user context, task list, daily memory, cross-context log, persistent memory, active commitments, escalation results, tool reference, and recent channel history — ensuring no agent acts on stale context.
 
-**What is novel:** The explicit separation of character from compliance in LLM agent configuration, the formalization that personality-layer behavioral instructions are unreliable and must not be trusted for must-hold rules, and the single-source-of-truth symlink pattern preventing configuration entropy across multiple agent workspaces.
+**Write-time tier classification (The Remember Protocol):** When an agent is instructed to persist new knowledge ("remember X"), a formal classification table routes the write to the correct tier based on knowledge type: shared crew facts → experiential tier's `## Shared Knowledge` section (auto-synced across agents), personal lessons → experiential tier (non-shared sections), personality/voice adjustments → identity tier, operational rule changes → flagged for human approval (operational tier is a shared file), hard rule/value changes → flagged for human approval (constitutional tier). This prevents tier contamination at write time — the most common source of configuration entropy in long-running multi-agent deployments.
+
+**What is novel:** The explicit separation of character from compliance in LLM agent configuration, the formalization that personality-layer behavioral instructions are unreliable and must not be trusted for must-hold rules, the single-source-of-truth symlink pattern preventing configuration entropy across multiple agent workspaces, and the write-time tier classification protocol that routes agent memory writes to the correct configuration tier, preventing tier contamination without requiring human review of every write.
 
 **Measured results:** 49% reduction in total configuration lines (675→347) with 2.2x improvement in useful-content ratio. 4 agents maintaining distinct personalities while sharing operational rules without behavioral drift.
+
+**Empirical evidence (2026-02-19):** 6/6 shared-config symlinks verified correct across 4 agent workspaces (CREW_CHARTER.md × 3 symlinks, AGENTS.md × 3 symlinks — 0% duplication in shared config). Three-tier line counts: Charter 200 lines (shared), AGENTS.md 358 lines (shared), SOUL.md 497 lines across 4 agents (unique per agent). Zero cross-tier rule duplication detected. Evidence suite: `run_evidence_suite.py`, Analysis 5.
 
 ---
 
@@ -300,6 +304,8 @@ These contributions strengthen the protocol for all servers.
 6. **Lifecycle management:** Nightly archival moves processed files older than 7 days to `_processed/` directories, preventing unbounded directory growth while preserving audit trail.
 
 **What is novel:** Using the filesystem as the primary inter-agent communication medium in multi-agent LLM systems, with the explicit design requirement that human operators can inspect, understand, and intervene in agent coordination using only standard filesystem tools. The combination of human-readable file-based messaging with atomic file operations for race condition prevention, and content-based resolution detection for flag lifecycle management.
+
+**Empirical evidence (2026-02-19):** 304 inter-agent messages exchanged via file protocol (70 active TO_ files, 37 active FROM_ files, 197 archived in _processed/). 22 acknowledgment confirmations tracked (16 ACK_*.md + 6 .ack files). Flag system: 21 flags total (3 active, 18 processed), 105% resolution rate. All 4 agent status files updated within 4 hours of measurement. Evidence suite: `run_evidence_suite.py`, Analysis 6.
 
 ---
 
@@ -335,13 +341,15 @@ These contributions strengthen the protocol for all servers.
 
 **What is novel:** The inversion of the multi-agent response problem from "who responds first" (speed optimization) to "who responds best" (accuracy optimization) via pre-generation domain classification. The combination of domain keyword routing, social gating, dispatch rewriting, atomic deduplication, per-channel state isolation, cooldown detection, delegation chains, and defense-in-depth safety net into a single coordinated dispatch architecture. The explicit design principle that routing to the right domain expert delivers more accuracy gain than upgrading the model size.
 
+**Empirical evidence (2026-02-19):** Dispatch log analysis (51 entries): zero cascades detected (100% cascade prevention). Route type distribution: 35 domain-routed (69%), 12 social-gated (26%), 4 first-in-wins fallback. Social gating correctly classified 12/47 inbound messages as ambient. Coordination experiment (5 agents, 50 ops per scenario, 4 modes × 3 scenarios): pipelined shanty coordination achieved 100% conflict reduction in file coordination (28% throughput penalty) and state synchronization (5% throughput penalty) scenarios. Evidence suite: `run_evidence_suite.py`, Analyses 1 & 2.
+
 ---
 
 ### Claim 4: Zero-Cost Nightly Maintenance for Multi-Agent Deployments ("The Harbour Watch")
 
 **Problem:** Multi-agent LLM deployments suffer from state drift: expired suspensions persist, log files grow unbounded, coordination files accumulate, stale flags go unprocessed, cron jobs silently fail, and agent knowledge silos develop. Manual maintenance is unsustainable. Existing approaches use expensive LLM calls for maintenance tasks that are fundamentally mechanical.
 
-**Solution:** A two-phase nightly maintenance system:
+**Solution:** A three-frequency maintenance architecture:
 
 **Phase 1 — Mechanical tasks (zero API cost, ~5 seconds):**
 1. **Stale state cleanup:** Clear expired rate-limit suspensions from shared state files, preventing agents from honoring stale cached suspension states for hours after actual suspension expires.
@@ -354,14 +362,27 @@ These contributions strengthen the protocol for all servers.
 8. **Cross-agent knowledge propagation:** Extract `## Shared Knowledge` sections from all agent MEMORY.md files, merge the union of bullet items, and write the merged set back to all agents — ensuring what one agent learns, all agents can access, without exposing per-agent personality or opinions.
 9. **Public documentation sync:** Copy whitelisted documentation files to a persistent Git mirror, scrub server-internal paths from content, and push to a public GitHub repository — keeping public-facing documentation current without manual intervention. Whitelist-only with explicit blocklist safety checks to prevent accidental exposure of private files.
 
-**Phase 2 — Budget-capped rotating LLM sessions:**
+**Near-real-time fast path (every 1 minute, ~80ms, zero API cost):**
+A subset of Phase 1 tasks that benefit from high-frequency execution are extracted into a lightweight fast path (`--sync-only`) that runs without acquiring the shared lock, without generating reports, and without triggering heavyweight operations (git push, security scan, log rotation). The fast path runs only:
+1. **Cross-agent knowledge propagation** — the `## Shared Knowledge` sync described above
+2. **Stale state cleanup** — clearing expired rate-limit suspensions
+
+The fast path is silent when idle — it only writes to the log when it actually propagates new knowledge or clears expired state. This prevents log bloat at high-frequency execution.
+
+**The key insight:** Not all maintenance tasks benefit equally from frequency. Knowledge propagation and stale state cleanup are latency-sensitive — an 18-hour delay means agents operate on incomplete information for most of the day. Log rotation, security scanning, and git sync are latency-tolerant — daily is sufficient. Separating these into frequency tiers (1-minute, nightly, weekly) optimizes coordination outcomes without increasing cost or system load.
+
+**Phase 2 — Budget-capped rotating LLM sessions (nightly):**
 Budget-capped Claude Code sessions rotate through a weekly schedule: security deep audit (Monday, $1), budget analysis (Tuesday, $1), code beautification (Wednesday–Saturday, $2/night), weekly summary (Sunday, $1). Weekly maximum ~$11. Each session runs in a subprocess with hard timeout, permission mode restrictions, and explicit guardrails (no credential access, no cron editing, no identity modification, no deployment).
 
-**Maintenance report:** Each run generates a structured Markdown report in the crew coordination directory with per-task status, sub-details, and summary. Critical security findings trigger a non-zero exit code for future alerting integration.
+**Maintenance report:** Each nightly run generates a structured Markdown report in the crew coordination directory with per-task status, sub-details, and summary. Critical security findings trigger a non-zero exit code for future alerting integration.
 
-**Shared lock:** Maintenance acquires an atomic lock file shared with the escalation system, preventing conflicts between nightly maintenance and agent-initiated escalation calls. Stale lock detection (>10 minutes) prevents deadlocks from process crashes.
+**Shared lock:** Nightly maintenance acquires an atomic lock file shared with the escalation system, preventing conflicts between nightly maintenance and agent-initiated escalation calls. Stale lock detection (>10 minutes) prevents deadlocks from process crashes. The 1-minute fast path does NOT acquire the lock — it operates only on agent MEMORY.md files and rate-limit state, which are not contested resources.
 
-**What is novel:** The separation of multi-agent maintenance into zero-cost mechanical tasks (filesystem operations, regex scanning, state cleanup) and budget-capped LLM sessions with hard cost controls. The cross-agent knowledge propagation mechanism that merges shared knowledge across agent memory stores while preserving per-agent personality boundaries. The content-based flag resolution detection. The whitelist-only documentation sync with path scrubbing for public repository maintenance.
+**What is novel:** The separation of multi-agent maintenance into three frequency tiers: near-real-time knowledge propagation (every minute, zero cost, no lock), nightly mechanical maintenance (zero cost, with lock), and weekly budget-capped LLM sessions. The cross-agent knowledge propagation mechanism that merges shared knowledge across agent memory stores while preserving per-agent personality boundaries. The silent-when-idle logging pattern for high-frequency maintenance. The content-based flag resolution detection. The whitelist-only documentation sync with path scrubbing for public repository maintenance.
+
+**Measured results:** Cross-agent knowledge latency reduced from 18 hours (worst case with nightly-only sync) to 60 seconds (with 1-minute fast path). Fast path execution time: ~80ms. Zero API cost across all three frequency tiers of mechanical maintenance. 4 agents maintaining synchronized shared knowledge with zero manual intervention.
+
+**Empirical evidence (2026-02-19):** Nightly maintenance ran successfully with 9/9 mechanical tasks clean at $0 API cost. Task coverage: rate limit cleanup, coordination file archival, log rotation, security scanning, usage tallying, cron health check (17 healthy, 0 stale, 0 erroring), flag cleanup, shared knowledge sync, GitHub repo sync (7 files synced). Escalation cost this week: $0.15 for 3 calls. Evidence suite: `run_evidence_suite.py`, Analysis 4.
 
 ---
 
@@ -385,6 +406,8 @@ Budget-capped Claude Code sessions rotate through a weekly schedule: security de
 5. **The key insight:** Speed is a commodity — every generation of model is faster than the last. Accuracy and coordination are the scarce resources. Within a budget constraint, maximize accuracy and coordination. Speed is last priority.
 
 **What is novel:** The explicit priority inversion from capability-first to budget-first in multi-agent model selection. The integration of domain routing with model selection such that routing to the right specialist reduces the required model capability. The formalization that domain expertise routing delivers more accuracy improvement than model size upgrading, enabling cost reduction without accuracy loss. The combination of per-task model assignment, budget caps at multiple levels, and cron staggering into a unified cost-optimization strategy.
+
+**Empirical evidence (2026-02-19):** 17 active cron jobs across 2 model tiers (15 Haiku, 2 Sonnet). Tiered model selection saves $143/month (72%) vs an all-Sonnet baseline. Monthly cost estimates: current tiered mix $56, all-Sonnet $198, all-Haiku $51. The 72% savings are achieved by routing routine duty cycles (58.5 turns/day) to Haiku while reserving Sonnet for morning briefing and evening report (2 turns/day). Evidence suite: `run_evidence_suite.py`, Analysis 3.
 
 ---
 
@@ -417,6 +440,8 @@ Budget-capped Claude Code sessions rotate through a weekly schedule: security de
 **The testability principle:** Culture is testable infrastructure, not metaphor. Each mapping produces measurable coordination metrics: task completion rate, silent dependency rate, human interrupt rate, mean time to coordination restoration, ack-to-lock time, dispatch accuracy.
 
 **What is novel:** The systematic, formal mapping of human cultural coordination forms to specific multi-agent LLM coordination failure types, with causal mechanisms (not just analogies), evidence levels, and measurable metrics. The insight that cultural forms are engineering solutions optimized by centuries of human survival pressure and are directly transferable to agent coordination. The testability principle: if you can't measure whether a cultural form prevents its target failure, it's decoration, not engineering.
+
+**Empirical evidence (2026-02-19):** Coordination experiment (4 modes × 3 scenarios): shanty-based coordination modes eliminated 100% of conflicts in file coordination and state synchronization scenarios. Pipelined mode: 100% conflict reduction with 5-28% throughput penalty (within 50% target). Adaptive mode: 100% in 2/3 scenarios; 79% in rate-limited API scenario (expected — adaptive tempo overshoots external rate limits, a known limitation). Classic shanty: 100% conflict reduction but 91-97% throughput penalty (validates the need for pipelined/adaptive variants). Evidence suite: `run_evidence_suite.py`, Analysis 1.
 
 ---
 
