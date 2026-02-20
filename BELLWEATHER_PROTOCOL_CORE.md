@@ -2,7 +2,7 @@
 
 **Version:** 1.1
 **Author:** Stefan Read
-**Project:** Pressgang Mutiny, Toronto
+**Project:** Stefan Read
 **Date:** February 2026
 
 This document defines the non-negotiable core of the Bellweather Protocol. Every server running the protocol references this document. Cultural vocabulary, metaphor domain, and implementation details vary by server. These principles do not.
@@ -238,5 +238,5 @@ These contributions strengthen the protocol for all servers.
 
 ---
 
-*The Bellweather Protocol was created by Stefan Read. Pressgang Mutiny, Toronto.*
+*The Bellweather Protocol was created by Stefan Read.*
 *The protocol is open. The reference implementation is ours. The tradition belongs to everyone who builds with it.*

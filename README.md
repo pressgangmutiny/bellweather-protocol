@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Multi-agent coordination framework</strong><br />
-  <em>By Pressgang Mutiny (Toronto)</em>
+  <em>By Stefan Read</em>
 </p>
 
 ---

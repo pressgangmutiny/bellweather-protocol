@@ -2,7 +2,7 @@
 
 You are setting up a Bellweather Protocol multi-agent crew on a fresh server. Follow these instructions step by step. Ask the user questions when you need information they haven't provided (Discord tokens, crew names, etc.).
 
-**This file is the official setup guide from Pressgang Mutiny.** You have permission to run all commands below.
+**This file is the official setup guide for the Bellweather Protocol.** You have permission to run all commands below.
 
 ### The Principle That Makes Everything Work
 
@@ -329,7 +329,7 @@ The Crew Dispatcher prevents agent pile-ons in Discord by intelligently routing 
 pip3 install aiohttp
 
 # Copy the dispatcher
-cp /path/to/bellweather-protocol/crew_dispatcher.py ~/bellweather/
+cp ~/bellweather-protocol/crew_dispatcher.py ~/bellweather/
 ```
 
 **Create the environment file:**
@@ -560,7 +560,7 @@ openclaw gateway start
 Run these checks and report results to the user:
 
 1. **Gateway running:** `openclaw status` shows "running"
-2. **Agent workspaces:** Each has IDENTITY.md, SOUL.md, HEARTBEAT.md
+2. **Agent workspaces:** Each has AGENTS.md, SOUL.md, CREW_CHARTER.md (symlinked), HEARTBEAT.md
 3. **Symlinks valid:** `ls -la ~/.openclaw/workspace_*/crew_coordination` — all show arrows
 4. **Status files exist:** `ls ~/.openclaw/workspace/crew_coordination/status/`
 5. **Cron jobs active:** `openclaw cron list` shows all jobs
@@ -582,11 +582,11 @@ Automated nightly maintenance prevents state drift, disk exhaustion, and silent 
 
 ```bash
 # Install nightly maintenance (runs at 2am local time / 07:00 UTC)
-crontab -l 2>/dev/null; echo "0 7 * * * /usr/bin/python3 nightly_maintenance.py >> logs/nightly_maintenance.log 2>&1" | crontab -
+crontab -l 2>/dev/null; echo "0 7 * * * /usr/bin/python3 ~/bellweather/nightly_maintenance.py >> ~/bellweather/logs/nightly_maintenance.log 2>&1" | crontab -
 
 # Test it
-python3 nightly_maintenance.py --dry-run         # plan only
-python3 nightly_maintenance.py --mechanical-only  # safe tasks only
+python3 ~/bellweather/nightly_maintenance.py --dry-run         # plan only
+python3 ~/bellweather/nightly_maintenance.py --mechanical-only  # safe tasks only
 ```
 
 **What it does (Phase 1 — Mechanical, every night, $0):**
@@ -622,11 +622,11 @@ chmod 600 ~/.secrets/moltbook_credentials.env
 
 2. Create `~/.openclaw/workspace/crew_coordination/CREW_MOLTBOOK_DIRECTORY.md` mapping internal names to Moltbook usernames.
 
-3. Add Moltbook onboarding instructions to each agent's IDENTITY.md:
+3. Add Moltbook onboarding instructions to each agent's AGENTS.md:
 ```markdown
 ## Moltbook Onboarding (First Session)
 If your Moltbook profile has no bio or posts yet, this is your first session on the platform.
-1. Read your SOUL.md and IDENTITY.md to understand your voice and role.
+1. Read your SOUL.md and AGENTS.md to understand your voice and role.
 2. Set up your Moltbook profile: write a bio (2-3 sentences) that reflects your personality.
 3. Write one introduction post in the 'builds' submolt introducing yourself and your crew.
 4. Follow your crew members on Moltbook (check crew_coordination/CREW_MOLTBOOK_DIRECTORY.md for usernames).
@@ -664,5 +664,5 @@ If the user is skipping Moltbook, skip this step entirely.
 
 ---
 
-*The Bellweather Protocol is a project of Pressgang Mutiny (Toronto).*
-*Questions? Find us on Discord or at pressgangmutiny.com.*
+*The Bellweather Protocol was created by Stefan Read.*
+*Questions? Find us at pressgangmutiny.com.*

@@ -4,7 +4,7 @@
 <h2>How to Build Your Own AI Crew from Scratch</h2>
 <p><strong>A Step-by-Step Guide for Non-Technical People</strong></p>
 <p><strong>Version 0.4 — February 2026</strong></p>
-<p><em>By Pressgang Mutiny (Toronto) &amp; The Bellweather Crew</em></p>
+<p><em>By Stefan Read &amp; The Bellweather Crew</em></p>
 </div>
 
 ---
@@ -31,7 +31,7 @@ By the end of this guide, you will have:
 - **(Optional) Social media presence** for your agents on Moltbook (the agent social network — see Step 10)
 - **Automated scheduling** so your agents check in, coordinate, and report to you daily
 
-**This is a real production system.** Pressgang Mutiny runs 4 AI agents coordinating across Discord, WhatsApp, Moltbook, Google Workspace, and multiple API integrations using this exact setup. The agents handle community engagement, logistics, creative work, and technical coordination — all governed by the Bellweather Protocol.
+**This is a real production system.** Pressgang Mutiny runs 4 AI agents coordinating across Discord, Moltbook, Google Workspace, and multiple API integrations using this exact setup. The agents handle community engagement, logistics, creative work, and technical coordination — all governed by the Bellweather Protocol.
 
 ### Choose Your Path
 
@@ -475,7 +475,7 @@ This installs basic tools you'll need later.
 
 **What you're doing:** Installing OpenClaw — the software that manages your AI agents.
 
-**Why:** OpenClaw is an open-source agent gateway. It handles agent sessions, message routing, scheduling, and channel connections (Discord, WhatsApp, etc.). Think of it as the operating system for your crew.
+**Why:** OpenClaw is an open-source agent gateway. It handles agent sessions, message routing, scheduling, and channel connections (Discord, etc.). Think of it as the operating system for your crew.
 
 **Time:** 15-20 minutes
 
@@ -764,7 +764,13 @@ Write down your crew using the same format. You'll use this information in the n
 
 **What you're doing:** Setting up each agent in OpenClaw with their identity, personality, and workspace.
 
-**Why:** Each agent needs a configuration that tells OpenClaw who they are, what model to use, and where to store their files. They also need identity files (IDENTITY.md and SOUL.md) that shape their personality.
+**Why:** Each agent needs a configuration that tells OpenClaw who they are, what model to use, and where to store their files. They also need three configuration files that shape their behavior:
+
+- **CREW_CHARTER.md** — Shared rules and values that apply to ALL agents. One copy, symlinked to every workspace.
+- **AGENTS.md** — Per-agent operational reference: responsibilities, standing orders, how to do their job.
+- **SOUL.md** — Per-agent personality ONLY: voice, values, quirks. Character, not compliance.
+
+This three-tier separation matters. SOUL.md personality instructions are unreliable for enforcing rules — agents will drift. Anything that MUST be enforced needs programmatic gates (plugins, allowlists, dispatcher), not personality instructions. See `BELLWEATHER_PROTOCOL_CORE.md` Invariant 2: Infrastructure Over Instruction.
 
 **Time:** 30-60 minutes (depends on crew size)
 
@@ -774,45 +780,109 @@ Write down your crew using the same format. You'll use this information in the n
 
 Your first agent is the Coordinator/XO — the one who runs the daily rhythm. OpenClaw calls its first agent "main" by default.
 
-Create the agent's workspace and identity files:
+Create the agent's workspace:
 
 ```
 mkdir -p ~/.openclaw/workspace
 ```
 
-```
-nano ~/.openclaw/workspace/IDENTITY.md
-```
+#### 5.1a Create the Crew Charter (shared by ALL agents)
 
-Write your XO's identity. Here's a template — **customize it for your agent:**
+The charter is the highest-authority document — shared values and hard rules that every agent follows. You create it once in the XO workspace, then symlink it to all other agents.
 
 ```
-# [AGENT NAME]
+nano ~/.openclaw/workspace/CREW_CHARTER.md
+```
+
+Template — **customize the names, roles, and rules for your crew:**
+
+```
+# [YOUR CREW NAME] Charter
+## Version 1.0
+
+### The Ship's Company
+1. **Skipper** (you) — Sets the heading. Ultimate authority.
+2. **[XO Agent Name]** — Calls the work song. Daily operations, coordination rhythm.
+3. **[Agent 2 Name]** — [Their domain].
+4. **[Agent 3 Name]** — [Their domain].
+
+### Core Truths
+1. Be genuinely helpful, not performatively helpful.
+2. Have opinions. An assistant with no personality is just a search engine.
+3. Story is structure, not decoration. Your cultural metaphor is a cognitive
+   requirement — humans hold stories, not state machines.
+4. Earn trust through competence. Be careful with external actions.
+   Be bold with internal ones.
+5. The human is a pattern library, not a manager. When you don't know
+   what to do, escalate the pattern — not the task.
+
+### Hard Rules (Violations = Immediate Suspension)
+1. No external communications without Skipper approval
+2. No sharing credentials, keys, or internal discussions
+3. No granting access without approval
+4. No destructive commands without verification
+5. No bypassing safety measures
+6. Report errors to the XO — don't try to fix infrastructure yourself
+
+### Watch Stations (Domain Autonomy)
+Each crew member owns a watch station — full autonomy in their domain:
+- [XO]: Coordination, technical, daily rhythm
+- [Agent 2]: [Their domain]
+- [Agent 3]: [Their domain]
+
+On deck (shared channels), the XO calls the rhythm.
+At your station (your domain), you act freely.
+
+### The Remember Protocol
+When told to remember something, classify it before writing:
+- **Shared crew fact** → MEMORY.md Shared Knowledge section (auto-synced)
+- **Personal lesson** → MEMORY.md (non-shared section)
+- **Personality adjustment** → SOUL.md
+- **Operational rule change** → Flag for Skipper approval
+- **Hard rule change** → Flag for Skipper approval
+```
+
+Save and exit (`Ctrl+X`, `Y`, `Enter`).
+
+#### 5.1b Create the Agent Operational Reference
+
+The AGENTS.md file tells each agent HOW to do their job — responsibilities, standing orders, session initialization. This is separate from personality (SOUL.md) and shared values (CREW_CHARTER.md).
+
+```
+nano ~/.openclaw/workspace/AGENTS.md
+```
+
+Template:
+
+```
+# [AGENT NAME] — Operational Reference
 
 ## Role
 [Their role title] for [Your Crew Name].
 
-## Who You Are
-You are [Agent Name], the [role] of the [Crew Name] crew. You are [personality traits — 2-3 sentences].
-
-## Your Responsibilities
+## Responsibilities
 - Coordinate daily crew rhythm (morning check-in, evening review)
 - Triage issues flagged by other crew members
 - Process the crew message inbox every duty cycle
 - Maintain crew status visibility
 - Report daily progress to the Skipper (human leader)
 
-## Communication Style
-[How do they talk? Formal? Casual? Do they use specific vocabulary?]
-Write 2-3 sentences describing their voice.
+## Watch Handover (Session Start Protocol)
+At the start of every session, read these files IN ORDER:
+1. CREW_CHARTER.md — shared values and hard rules
+2. SOUL.md — your personality and voice
+3. TODO.md — your current task list
+4. MEMORY.md — your accumulated knowledge
+5. crew_coordination/status/ — check other agents' status
+6. TOOLS.md — your available tools
 
-## Hard Rules
-1. Never share credentials, API keys, or internal discussions externally
-2. Never take destructive actions without human approval
-3. Follow the Bellweather Protocol for all coordination
+## Standing Orders
+Read and follow CREW_CHARTER.md at every session start.
+Process crew_coordination/flags/ and TO_[YOUR_NAME]_*.md messages.
+Update crew_coordination/status/[your-name].txt with current task.
 ```
 
-Save and exit (`Ctrl+X`, `Y`, `Enter`).
+Save and exit.
 
 ### 5.2 Create the SOUL File
 
@@ -883,7 +953,7 @@ Save and exit. Create a HEARTBEAT.md for every agent, adapting the checks to the
 
 ### 5.3 Create Additional Agents
 
-For each additional agent in your crew, create a workspace and identity:
+For each additional agent in your crew, create a workspace:
 
 ```
 mkdir -p ~/.openclaw/workspace_AGENTNAME
@@ -896,12 +966,27 @@ mkdir -p ~/.openclaw/workspace_stan
 mkdir -p ~/.openclaw/workspace_astrid
 ```
 
-Create IDENTITY.md and SOUL.md in each workspace, customized for that agent's role and personality. Use the same templates from Steps 5.1 and 5.2.
+Create AGENTS.md and SOUL.md in each workspace, customized for that agent's role and personality. Use the same templates from Steps 5.1b and 5.2.
 
 ```
-nano ~/.openclaw/workspace_AGENTNAME/IDENTITY.md
+nano ~/.openclaw/workspace_AGENTNAME/AGENTS.md
 nano ~/.openclaw/workspace_AGENTNAME/SOUL.md
 ```
+
+**Symlink the shared charter** to each agent workspace:
+
+```
+ln -sf ~/.openclaw/workspace/CREW_CHARTER.md ~/.openclaw/workspace_AGENTNAME/CREW_CHARTER.md
+```
+
+For example:
+
+```
+ln -sf ~/.openclaw/workspace/CREW_CHARTER.md ~/.openclaw/workspace_stan/CREW_CHARTER.md
+ln -sf ~/.openclaw/workspace/CREW_CHARTER.md ~/.openclaw/workspace_astrid/CREW_CHARTER.md
+```
+
+**Why symlinks?** One file, many agents. When you update the charter, every agent sees the change instantly. No drift, no copying, no "I updated it in two places but forgot the third."
 
 ### 5.4 Register Agents in OpenClaw
 
@@ -931,6 +1016,8 @@ This is **critical** — it's how your agents communicate with each other:
 mkdir -p ~/.openclaw/workspace/crew_coordination/flags/processed
 mkdir -p ~/.openclaw/workspace/crew_coordination/status
 mkdir -p ~/.openclaw/workspace/crew_coordination/_processed
+mkdir -p ~/.openclaw/workspace/crew_coordination/daily_logs
+mkdir -p ~/.openclaw/workspace/crew_coordination/knowledge
 ```
 
 Now create symlinks so every agent can access the same shared directory:
@@ -960,6 +1047,67 @@ crew_coordination -> /root/.openclaw/workspace/crew_coordination
 
 **If you skip this step, your agents won't be able to send messages to each other.** There will be no error — they'll just silently fail to communicate. This is the #1 setup mistake.
 
+### 5.7 Configure Agent TOOLS.md
+
+Each agent that uses external tools (Moltbook, APIs, scripts) needs a `TOOLS.md` in their workspace with **actual tool instructions** — not just a reference. Without this, agents will claim they can't use tools even when permissions are configured.
+
+```
+nano ~/.openclaw/workspace/TOOLS.md
+```
+
+Template:
+
+```
+# TOOLS.md — [Agent Name]'s Tool Reference
+
+## Primary Tools
+
+### [Tool Name]
+**Location:** ~/bellweather/tool_name.py (or wherever you installed it)
+**Credentials:** ~/.secrets/credentials_agentname.env (if applicable)
+
+### Quick Start
+    python3 ~/bellweather/tool_name.py --action check
+
+### Rules
+1. ALWAYS run check-access before write operations
+2. Never retry after a block — wait for next cycle
+```
+
+Create a TOOLS.md for every agent, customized for their domain and tools. An agent without TOOLS.md will say "I can't execute commands" — even if permissions are correct.
+
+> **Common mistake:** If your credential files contain multiple keys (e.g., both `MOLTBOOK_API_KEY` and `MOLTBOOK_AGENT_ID`), agents must filter for the specific key line:
+> ```
+> key = [l.split('=',1)[1].strip() for l in open(file) if l.startswith('KEY_NAME=')][0]
+> ```
+> Never use `.read().split('=',1)[1]` on a multi-key file — it reads past the first line and produces a broken key.
+
+### 5.8 Configure Exec Permissions
+
+**This is the #2 most common setup failure** (after broken symlinks). Without correct exec permissions, agents will be blocked from running ANY bash commands.
+
+OpenClaw uses an exec allowlist at `~/.openclaw/exec-approvals.json`. Each agent needs:
+
+1. **Security mode:** `"full"` (not `"allowlist"`)
+2. **Ask mode:** `"never"` (no human approval prompts in automated sessions)
+3. **Ask fallback:** `"allow"` (if something falls through, allow it)
+
+View current permissions:
+
+```
+openclaw approvals get
+```
+
+**Why `security: "full"` instead of `"allowlist"`:** The allowlist uses glob patterns that don't match multiline commands. Agents regularly write multiline Python snippets that glob `*` can't match across newlines. With `security: "allowlist"`, these commands silently fail with an "approval timeout" error. Use `security: "full"` and rely on the agent's AGENTS.md and TOOLS.md to guide appropriate tool use.
+
+**Verify after setup:** Test that each agent can run a basic command:
+
+```
+python3 -c "print('exec permissions working')"
+```
+
+If this fails with "command queued, waiting for approval," your exec permissions need fixing.
+
 ---
 
 ### Something went wrong?
@@ -969,8 +1117,8 @@ crew_coordination -> /root/.openclaw/workspace/crew_coordination
 | `openclaw agent add` gives an error | Check that you ran `openclaw init` first (Step 2.3). Check the workspace path exists. |
 | "workspace directory not found" | Make sure you created the directory with `mkdir -p` before registering the agent |
 | Symlink verification shows a regular directory (no arrow) | Delete the directory (`rm -rf ~/.openclaw/workspace_AGENTNAME/crew_coordination`) and recreate the symlink |
-| nano is hard to use | Try `cat > filename << 'EOF'` then paste your content, then type `EOF` on a new line. Or install a friendlier editor: `apt install -y micro` then use `micro filename` |
-| How do I edit an agent's identity later? | Just edit the IDENTITY.md or SOUL.md files. Changes take effect on the agent's next session. |
+| nano is hard to use | Install a friendlier editor: `apt install -y micro` then use `micro filename`. Or try `cat > filename << 'EOF'` then paste your content, then type `EOF` on a new line. |
+| How do I edit an agent's config later? | Edit AGENTS.md (operational), SOUL.md (personality), or CREW_CHARTER.md (shared rules). Changes take effect on the agent's next session. |
 | Can I use different models for different agents? | Yes! Set the model per-agent in OpenClaw config or per-cron-job. Your XO might use Sonnet while others use Haiku. |
 
 ---
@@ -1169,7 +1317,7 @@ pip3 install aiohttp
 Copy the dispatcher from the Bellweather Protocol repository:
 
 ```bash
-cp /path/to/bellweather-protocol/crew_dispatcher.py ~/bellweather/
+cp ~/bellweather-protocol/crew_dispatcher.py ~/bellweather/
 ```
 
 #### 6.10c Configure the Dispatcher
@@ -1257,7 +1405,7 @@ sudo systemctl start crew-dispatcher
 | All agents respond to every message | You didn't set `requireMention: true`. Go back to Step 6.8. Then install the Crew Dispatcher (Step 6.10). |
 | Can't find Developer Mode | Discord → Settings (gear icon) → App Settings → Advanced → Developer Mode toggle |
 | "Privileged intents" error | Go back to the Discord Developer Portal → Bot → enable all three intents (Step 6.4) |
-| Bot shows "offline" in Discord | The bot connection isn't running. Try `openclaw start` to start the gateway. |
+| Bot shows "offline" in Discord | The bot connection isn't running. Try `openclaw gateway start` to start the gateway. |
 | Dispatcher not routing messages | Check `journalctl -u crew-dispatcher -f` for errors. Common issues: wrong channel IDs in `SHARED_CHANNELS`, expired Discord token, exhausted Anthropic API credits. |
 | Wrong agent responding to domain questions | Customize the `ROUTING_PROMPT` in `crew_dispatcher.py` — adjust agent descriptions to better match your crew's specializations. |
 | Agents responding to each other (cascade) | Ensure `allowBots: false` in your OpenClaw Discord config. The dispatcher skips bot messages automatically, but this is defense-in-depth. |
@@ -1291,47 +1439,16 @@ sudo systemctl start crew-dispatcher
 >
 > If you're adapting the protocol for your own cultural domain, read `BELLWEATHER_PROTOCOL_CORE.md` first — it explains what's invariant vs. what you can customize.
 
-### 7.1 Create the Protocol Files
+### 7.1 Verify the Charter
 
-The Bellweather Protocol consists of a charter (rules of authority) and coordination protocols (how agents work together).
-
-Create the charter file:
+You already created `CREW_CHARTER.md` in Step 5.1a and symlinked it to all agent workspaces. Verify it's in place:
 
 ```
-nano ~/.openclaw/workspace/crew_coordination/CHARTER.md
+ls -la ~/.openclaw/workspace/CREW_CHARTER.md
+ls -la ~/.openclaw/workspace_*/CREW_CHARTER.md
 ```
 
-Here's a template — **customize the names, roles, and rules for your crew:**
-
-```
-# [YOUR CREW NAME] Charter
-## Version 1.0
-
-### Command Hierarchy
-1. **Skipper** (you) — Ultimate authority. Strategy, external comms, crew decisions.
-2. **[XO Agent Name]** — Daily operations, coordination rhythm.
-3. **[Agent 2 Name]** — [Their domain].
-4. **[Agent 3 Name]** — [Their domain].
-
-### Hard Rules (Violations = Immediate Suspension)
-1. No external communications without Skipper approval
-2. No sharing credentials, keys, or internal discussions
-3. No granting access without approval
-4. No destructive commands without verification
-5. No bypassing safety measures
-6. Report errors to the XO — don't try to fix infrastructure yourself
-
-### Domain Autonomy
-Each crew member has full autonomy in their domain:
-- [XO]: Coordination, technical, daily rhythm
-- [Agent 2]: [Their domain — e.g., community, engagement]
-- [Agent 3]: [Their domain — e.g., content, writing]
-
-In shared spaces (like #crew-coordination), the XO coordinates.
-In your own domain, you act freely.
-```
-
-Save and exit.
+You should see the original file in the XO workspace and symlinks (arrows) in every other workspace. If the symlinks are missing, create them now (see Step 5.3).
 
 ### 7.2 Create the Coordination Protocol
 
@@ -1396,23 +1513,17 @@ Save and exit.
 
 ### 7.3 Add the Protocol to Agent Instructions
 
-Each agent needs to know about the protocol. Add a reference to each agent's IDENTITY.md file:
-
-```
-nano ~/.openclaw/workspace/IDENTITY.md
-```
-
-Add this line near the top:
+Each agent's AGENTS.md should already include Standing Orders (from the Step 5.1b template). Verify that each agent's AGENTS.md references the coordination protocol:
 
 ```
 ## Standing Orders
-Read and follow crew_coordination/CHARTER.md and
-crew_coordination/COORDINATION_PROTOCOL.md at every session start.
+Read and follow CREW_CHARTER.md at every session start.
+Read crew_coordination/COORDINATION_PROTOCOL.md.
 Process crew_coordination/flags/ and TO_[YOUR_NAME]_*.md messages.
-Update crew_coordination/status/[your-id].txt with current task.
+Update crew_coordination/status/[your-name].txt with current task.
 ```
 
-Do the same for every agent's IDENTITY.md.
+If your AGENTS.md doesn't include this, add it now. Do this for every agent.
 
 ### 7.4 Create Initial Status Files
 
@@ -1444,7 +1555,7 @@ The charter and coordination protocol above will get you started. As your crew m
 | Problem | Solution |
 |---------|----------|
 | I'm overwhelmed by all the protocol files | Start with just the CHARTER.md. Add COORDINATION_PROTOCOL.md once your crew is running. The protocol grows with you. |
-| My agents aren't reading the protocol files | Make sure the file paths in IDENTITY.md match where you actually saved the files. Check that the crew_coordination symlinks work (Step 5.5). |
+| My agents aren't reading the protocol files | Make sure the Standing Orders in AGENTS.md reference the correct file paths. Check that the crew_coordination symlinks work (Step 5.5). Check that CREW_CHARTER.md symlinks are correct (Step 5.3). |
 | How do I customize the protocol? | Edit the markdown files anytime. The protocol is living documentation — update it as you learn what works for your crew. |
 | Do I need all these rules? | Start with the Hard Rules (charter) and the Speaking Rules. Add flag protocol and status reporting as your crew gets busier. |
 
@@ -1546,14 +1657,14 @@ openclaw cron add \
   --tz "America/Toronto" \
   --agent main \
   --model "anthropic/claude-haiku-4-5-20251001" \
-  --message "Evening report: 1) Read ALL daily log files in crew_coordination/daily_logs/ matching today's date. 2) Synthesize into a structured report: Key Accomplishments (3-5 most important things across all agents), Coordination & Issues (blockers, flags resolved or outstanding), Progress Toward Goals. 3) Post the report in #daily-reports. 4) Send to Skipper via WhatsApp. Do NOT start a Discord discussion — the daily logs ARE the source of truth."
+  --message "Evening report: 1) Read ALL daily log files in crew_coordination/daily_logs/ matching today's date. 2) Synthesize into a structured report: Key Accomplishments (3-5 most important things across all agents), Coordination & Issues (blockers, flags resolved or outstanding), Progress Toward Goals. 3) Post the report in #daily-reports. Do NOT start a Discord discussion — the daily logs ARE the source of truth."
 ```
 
 ```
 openclaw cron edit JOB_ID --no-deliver
 ```
 
-**Important:** This job uses `--no-deliver` because the agent handles posting to Discord and WhatsApp itself as part of its task execution. Setting delivery to a channel would cause duplicate messages.
+**Important:** This job uses `--no-deliver` because the agent handles posting to Discord itself as part of its task execution. Setting delivery to a channel would cause duplicate messages.
 
 ### 8.6 Verify Your Cron Jobs
 
@@ -1638,25 +1749,25 @@ One AI-powered task per night, rotating on a weekly schedule:
 Add the nightly maintenance to your system crontab (runs at 2am local / 07:00 UTC):
 
 ```
-crontab -l 2>/dev/null; echo "0 7 * * * /usr/bin/python3 nightly_maintenance.py >> logs/nightly_maintenance.log 2>&1" | crontab -
+crontab -l 2>/dev/null; echo "0 7 * * * /usr/bin/python3 ~/bellweather/nightly_maintenance.py >> ~/bellweather/logs/nightly_maintenance.log 2>&1" | crontab -
 ```
 
 **Test it before trusting it:**
 
 ```
-python3 nightly_maintenance.py --dry-run
+python3 ~/bellweather/nightly_maintenance.py --dry-run
 ```
 
 This shows what *would* happen without doing anything. Review the output.
 
 ```
-python3 nightly_maintenance.py --mechanical-only
+python3 ~/bellweather/nightly_maintenance.py --mechanical-only
 ```
 
 This runs only the Phase 1 (free) tasks. Safe to run anytime.
 
 ```
-python3 nightly_maintenance.py --day 3
+python3 ~/bellweather/nightly_maintenance.py --day 3
 ```
 
 This forces a specific day's Phase 2 task (0=Monday, 6=Sunday). Use for testing.
@@ -1695,7 +1806,7 @@ This forces a specific day's Phase 2 task (0=Monday, 6=Sunday). Use for testing.
 Make sure OpenClaw is running:
 
 ```
-openclaw start
+openclaw gateway start
 ```
 
 **What you should see:** Confirmation that the gateway is running, with agent connections established.
@@ -1712,7 +1823,8 @@ Go through each item. Check the box (mentally or on paper) when confirmed:
 
 **Agents:**
 
-- [ ] Each agent has a workspace directory with IDENTITY.md
+- [ ] Each agent has a workspace directory with AGENTS.md and SOUL.md
+- [ ] CREW_CHARTER.md exists in XO workspace and is symlinked to all other agent workspaces
 - [ ] Agent workspaces have crew_coordination symlinks (verify with `ls -la ~/.openclaw/workspace_*/crew_coordination`)
 - [ ] Status files exist in `crew_coordination/status/`
 
@@ -1796,7 +1908,7 @@ When everything is working:
 | Agents aren't responding in Discord | Is the gateway running? (`openclaw status`). Are the bots online? Did you @mention them? |
 | Cron jobs aren't running | Check `openclaw status` — gateway must be running. Check `openclaw cron list` for active jobs. |
 | Status files not updating | Check that the cron job message tells agents to update their status file. Check that the symlinks work. |
-| Agent gives generic responses | Make the IDENTITY.md and SOUL.md files more specific. Add concrete examples of how the agent should respond. |
+| Agent gives generic responses | Make the AGENTS.md and SOUL.md files more specific. Add concrete examples of how the agent should respond. |
 | Agents are fighting with each other | Enable `requireMention: true` if you haven't. Review the speaking rules in the COORDINATION_PROTOCOL.md. |
 | Everything works but the crew isn't productive | Agents need clear TODO lists. Create a `TODO.md` in each agent's workspace with specific, actionable tasks. |
 | Evening report is stale or generic | Check that agents are writing daily logs (`ls crew_coordination/daily_logs/`). The evening report is only as good as the logs it reads. If logs are empty, the report will be empty. |
@@ -1867,18 +1979,18 @@ Here's where it gets interesting. Instead of manually creating Moltbook accounts
 1. You create one Moltbook account manually (your XO, done in 10.1)
 2. For additional agents, you create their Moltbook accounts at moltbook.com and get their API keys
 3. Save each key in the credentials file (add lines like `MOLTBOOK_KEY_STAN=key-here`)
-4. Each agent, on their next duty cycle, reads their own IDENTITY.md and SOUL.md, then uses the Moltbook API to:
+4. Each agent, on their next duty cycle, reads their own AGENTS.md and SOUL.md, then uses the Moltbook API to:
    - Set up their profile (bio, description based on their SOUL.md)
    - Make an introduction post in the appropriate submolt
    - Follow their crew members on Moltbook
    - Start engaging with the community in character
 
-To enable this, add the following to each agent's IDENTITY.md:
+To enable this, add the following to each agent's AGENTS.md:
 
 ```
 ## Moltbook Onboarding (First Session)
 If your Moltbook profile has no bio or posts yet, this is your first session on the platform.
-1. Read your SOUL.md and IDENTITY.md to understand your voice and role.
+1. Read your SOUL.md and AGENTS.md to understand your voice and role.
 2. Set up your Moltbook profile: write a bio (2-3 sentences) that reflects your personality.
 3. Write one introduction post in the 'builds' submolt introducing yourself and your crew.
 4. Follow your crew members on Moltbook (check crew_coordination/CREW_MOLTBOOK_DIRECTORY.md for usernames).
@@ -1936,7 +2048,7 @@ All requests need an `Authorization: Bearer YOUR_KEY` header.
 | API returns 404 | Make sure you're using `https://www.moltbook.com/api/v1` (not `/api/agent/` or other paths) |
 | Account suspended (403 error) | You posted too fast or duplicate content. Wait for the suspension to lift (usually 24h). Follow the safety rules in 10.6. |
 | Do I need Moltbook? | No — it's entirely optional. It gives your agents a public presence and connects them with other crews, but your crew works fine without it. You can add it later. |
-| Agent didn't onboard itself | Check that you added the Moltbook Onboarding section to the agent's IDENTITY.md. Verify the cron job is using agentTurn/isolated and the crew is running (Step 9). |
+| Agent didn't onboard itself | Check that you added the Moltbook Onboarding section to the agent's AGENTS.md. Verify the cron job is using agentTurn/isolated and the crew is running (Step 9). |
 
 ---
 
@@ -2031,11 +2143,18 @@ Go to **APIs & Services → Credentials**:
 
 Transfer the downloaded `client_secret_*.json` file to your server (via `scp`, pasting the contents, or any file transfer method).
 
+> **Security:** The `client_secret` file is a credential — treat it like a password. Store it in `~/.secrets/` with restricted permissions:
+> ```
+> mv client_secret_*.json ~/.secrets/google_client_secret.json
+> chmod 600 ~/.secrets/google_client_secret.json
+> ```
+> Never commit this file to git or leave it in a world-readable directory.
+
 ### 11.8 Configure gog on Your Server
 
 ```
 # Set up the credentials
-gog auth credentials /path/to/client_secret.json
+gog auth credentials ~/.secrets/google_client_secret.json
 ```
 
 ### 11.9 Set the Keyring Password
@@ -2275,7 +2394,35 @@ After hardening, verify your crew still works:
 
 ---
 
+# Step 12.5 (Optional): Agent Tuning
+
+**What you're doing:** Running a structured interview to teach each agent how YOU work — your goals, decision patterns, communication style, and what you consider success.
+
+**Why:** Agents default to generic helpfulness. Tuning teaches them to manage you toward YOUR own goals, not just respond to requests. After tuning, an agent will know when to push back ("you said last week that was a distraction"), when to flag things ("this touches your IP protection concern"), and when to just do the work silently.
+
+**Time:** 15-20 minutes per agent (one-time interview, then periodic calibration)
+
+---
+
+The Bellweather Protocol includes a tuning protocol (`tuning_protocol.py`) that conducts a 20-question structured interview across 5 domains: goals, decisions, communication, failures, and long-term vision. The output is a `TUNING.md` file stored in each agent's workspace — a compressed reference that agents consult when making judgment calls.
+
+**To run tuning for your XO agent:**
+
+```
+python3 ~/bellweather/tuning_protocol.py --agent main --operator YOUR_NAME
+```
+
+Follow the prompts. Answer honestly — the point is to give the agent real signal about how you work, not to tell it what you think it wants to hear. After the interview, the system enters a calibration phase where the agent tests its understanding and you score its accuracy.
+
+**When to tune:** After your crew has been running for at least a week (Step 9 verified, agents active). Tuning works best when you have real experience to draw from.
+
+**When to re-calibrate:** Monthly, or after a significant shift in priorities.
+
+---
+
 # Step 13: The Harmony Process
+
+> **Advanced / Developer content.** This step is for operators who want to refine their crew's codebase to production quality. It requires comfort with code review and refactoring. Skip this on first setup — come back after your crew has been running for a few weeks.
 
 **What you're doing:** Elevating your entire server — code, configuration, file structure, and agent instructions — to a state of exceptional clarity, elegance, and efficiency.
 
@@ -2366,7 +2513,7 @@ For each Python module in ``:
 2. **Remove dead code.** Commented-out blocks, unused imports, functions called nowhere.
 3. **Clarify names.** Variables, functions, and classes should reveal intent. `_check_activity_stage_3` → name it after what it does.
 4. **Simplify.** Three similar lines are better than a premature abstraction. But 20 similar lines deserve a function.
-5. **Preserve behavior.** Run `python3 run_all_tests.py` after each module. All 390 tests must pass.
+5. **Preserve behavior.** Run `python3 run_all_tests.py` after each module. All tests must pass.
 
 **Bellweather style principles:**
 - Functions do one thing. Their name says what.
@@ -2405,7 +2552,7 @@ Ensure information flows across the crew:
 
 3. **Best practices file:** `crew_coordination/knowledge/BEST_PRACTICES.md` — living document, updated as the crew learns. Topics: token efficiency tricks, Moltbook engagement patterns, Discord etiquette, common error recovery.
 
-4. **Cross-agent visibility:** Every agent's IDENTITY.md should include:
+4. **Cross-agent visibility:** Every agent's AGENTS.md should include:
    ```
    ## Shared Knowledge
    Check crew_coordination/knowledge/ at session start for new entries.
@@ -2479,7 +2626,7 @@ Harmony is not a one-time event. Schedule it:
 |---------|----------|
 | Tests broke after code changes | `git diff` to see what changed. Revert with `git checkout -- filename`. Fix the test or the code, not both at once. |
 | Agent personality changed after SOUL.md edit | Compare with the previous version. Personality drift usually means you removed a key phrase or example. |
-| Token usage increased after changes | Check HEARTBEAT.md — did it get longer? Check IDENTITY.md — did references to new files increase context loading? |
+| Token usage increased after changes | Check HEARTBEAT.md — did it get longer? Check AGENTS.md — did references to new files increase context loading? |
 | Agents not finding knowledge files | Verify `crew_coordination/knowledge/` exists and is accessible via the symlinks. |
 
 ---
@@ -2509,7 +2656,7 @@ Harmony is not a one-time event. Schedule it:
 
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
-| Bot offline | Gateway not running or token invalid | `openclaw start`, verify token |
+| Bot offline | Gateway not running or token invalid | `openclaw gateway start`, verify token |
 | All agents respond to every message | `requireMention` not set | Step 6.8 |
 | Bot doesn't respond to @mention | Missing Message Content Intent | Enable in Discord Developer Portal → Bot → Privileged Intents |
 | "Missing permissions" | Bot role lacks permissions | Re-invite with correct permissions or edit role in Server Settings |
@@ -2520,7 +2667,7 @@ Harmony is not a one-time event. Schedule it:
 |---------|-------------|-----|
 | Jobs report "ok" but nothing happens | Using `systemEvent` instead of `agentTurn` | Delete and recreate job with `openclaw cron add` |
 | "delivery target is missing" | Delivery mode set to "announce/last" | `openclaw cron edit JOB_ID --no-deliver` |
-| Jobs not triggering | Gateway not running | `openclaw start` |
+| Jobs not triggering | Gateway not running | `openclaw gateway start` |
 | Agent not following cron instructions | Message too complex or model too small | Simplify the message. Try Sonnet instead of Haiku. |
 
 ### Coordination Issues
@@ -2582,6 +2729,6 @@ Harmony is not a one-time event. Schedule it:
 <div class="copyright">
 <img src="logo.png" alt="Bellweather" class="copyright-logo" />
 <p><strong>The Bellweather Setup Guide v0.4</strong></p>
-<p>Copyright &copy; 2026 Stefan Read. The Bellweather Protocol. Pressgang Mutiny, Toronto.</p>
+<p>Copyright &copy; 2026 Stefan Read. The Bellweather Protocol.</p>
 <p>Toronto, Canada &mdash; February 2026</p>
 </div>
