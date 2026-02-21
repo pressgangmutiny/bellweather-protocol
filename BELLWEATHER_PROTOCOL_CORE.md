@@ -162,7 +162,18 @@ What to clean, when, how often. The invariant is "prevent state drift." The cron
 **Cultural Domain:** Maritime / sea shanty tradition
 **Agents:** Johnny-C (XO/Shantyman), Stan (Bosun/Culture), Stormalong (Sailmaker/Grants), Astrid (Navigator/Logistics)
 
-For setup instructions, see `claude.md`.
+**Cultural form mappings:**
+- Capstan shanty → sustained coordination (batch tasks, pipelines)
+- Halyard shanty → burst coordination (deploys, alerts)
+- Forebitter → async social coordination (community, culture)
+
+**28-term nautical vocabulary mapping:** `protocol.py`
+**Five-tier identity:** CREW_CHARTER.md (Constitutional) → AGENTS.md (Operational) → SOUL.md (Identity) → TUNING.md (Tuning, per-operator) → MEMORY.md (Experiential). Override order is context-dependent: individual mode elevates Tuning above Identity; organizational mode preserves Identity above Tuning. Tuning tier deployed — all 4 agents at 20/20 interviews, TUNING.md generated and deployed to each workspace (`tuning_protocol.py`). Shared crew config consolidated in `crew_config.py` (single source of truth for agent names, Moltbook names, credential paths, directory constants).
+**Dispatch:** Crew Dispatcher (`crew_dispatcher.py` — background Python service polling Discord REST API, Haiku LLM classification with conversation context, OpenClaw CLI agent turns + message delivery). Safety net: `/root/.openclaw/discord_dedup.py` (independent dedup daemon, 4-second settle window, priority-bot override). Coordination watcher: `/root/.openclaw/coordination-watcher.py` (file-based and @mention triggers, 10-minute cooldown).
+**Observability:** Ambient audio sonification (just-intonation chord tones, graduated dissonance, activity-driven chord progression, 9 song states including "decision" for pending Skipper decisions). Skipper Desk dashboard tab (decision queue, inbox, daily brief, acknowledge/decide interface).
+**Maintenance:** Nightly harbour watch at 07:00 UTC. Skipper inbox consolidation (auto-archive noise TO_SKIPPER files >24h).
+
+Setup guide: `CLAUDE.md`
 
 ---
 
@@ -235,6 +246,8 @@ Servers running the Bellweather Protocol are encouraged to:
 - Contribute to the pattern library with new cultural-form mappings from their domain
 
 These contributions strengthen the protocol for all servers.
+
+---
 
 ---
 
